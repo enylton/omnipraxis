@@ -85,3 +85,10 @@ Thumbs.db
 *.tgz
 .node_repl_history
 .tern-port
+
+# Github
+.github
+
+# Agents
+.agents
+skills-lock.json
