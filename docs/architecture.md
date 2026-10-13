@@ -74,6 +74,8 @@ The root `/omnipraxis/` route renders a DOM scene index outside the Canvas. Scen
 
 GitHub Pages currently serves only the root `index.html` and does not rewrite arbitrary paths to that shell. Consequently, a nested scene URL works after navigation from the loaded scene index, but directly loading or refreshing that URL returns a Pages 404. A future build step can use the React-free manifest to emit identical processed HTML shells at each registered scene path; the initial-path resolver already supports those direct entries without further runtime changes.
 
+Firebase Hosting uses separate production and pull-request preview workflows. Both check out Git LFS assets, select Node 24 and the pnpm version from `package.json`, install frozen dependencies, lint, and run `pnpm build --base=/`. Hosting publishes the resulting `dist` directory and rewrites unmatched paths to `index.html`, allowing direct scene entry and refresh at the domain root. GitHub Pages continues to build independently with the default `/omnipraxis/` base; both deployments reuse the existing route resolver and scene runtime.
+
 ## Scene Authoring API Surface
 
 A scene specification should compose platform-provided primitives rather than directly binding to lower-level libraries when a platform abstraction exists.
