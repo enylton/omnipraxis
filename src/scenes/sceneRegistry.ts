@@ -1,5 +1,6 @@
 import { BaseScene } from './base/scene';
 import { CircuitBreakerScene } from './circuit-breaker/scene';
+import { DrillRigScene } from './drill-rig/scene';
 import { PressureGaugeScene } from './pressure-gauge/scene';
 import { sceneManifest } from './sceneManifest';
 
@@ -19,6 +20,10 @@ export const sceneRegistry = {
   'circuit-breaker': {
     ...sceneManifest['circuit-breaker'],
     component: CircuitBreakerScene,
+  },
+  'drill-rig': {
+    ...sceneManifest['drill-rig'],
+    component: DrillRigScene,
   },
   'pressure-gauge': {
     ...sceneManifest['pressure-gauge'],

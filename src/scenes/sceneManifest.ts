@@ -5,6 +5,9 @@ export const sceneManifest = {
   'circuit-breaker': {
     title: 'Circuit Breaker',
   },
+  'drill-rig': {
+    title: 'Drill Rig',
+  },
   'pressure-gauge': {
     title: 'Pressure Gauge',
   },
