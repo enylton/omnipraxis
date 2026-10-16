@@ -18,19 +18,7 @@
             "styles": ["portal/src/styles.css"],
             "assets": [
               { "glob": "*.*", "input": "build/viewer", "output": "viewer" },
-              { "glob": "*.*", "input": "build/public-viewer", "output": "public-viewer" },
-              { "glob": "**/*", "input": "public/scenes/base", "output": "scenes/base" },
-              {
-                "glob": "**/*",
-                "input": "public/scenes/circuit-breaker",
-                "output": "scenes/circuit-breaker"
-              },
-              {
-                "glob": "**/*",
-                "input": "public/scenes/pressure-gauge",
-                "output": "scenes/pressure-gauge"
-              },
-              { "glob": "**/*", "input": "public/assets", "output": "assets" }
+              { "glob": "*.*", "input": "build/public-viewer", "output": "public-viewer" }
             ]
           },
           "configurations": {

@@ -14,7 +14,7 @@ export type ResolvedSceneAssets = {
 export const storageMediaUrl = (storage: FirebaseStorage, path: string, origin?: string): string =>
   `${origin ?? 'https://firebasestorage.googleapis.com'}/v0/b/${encodeURIComponent(ref(storage).bucket)}/o/${encodeURIComponent(path)}?alt=media`;
 
-const verifyAsset = async (blob: Blob, asset: SceneAsset): Promise<Blob> => {
+export const verifyAsset = async (blob: Blob, asset: SceneAsset): Promise<Blob> => {
   if (blob.size !== asset.bytes) throw new Error('Scene asset length does not match its revision.');
   const digest = await crypto.subtle.digest('SHA-256', await blob.arrayBuffer());
   const hash = Array.from(new Uint8Array(digest), (byte) =>

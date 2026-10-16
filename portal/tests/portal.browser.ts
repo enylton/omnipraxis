@@ -224,12 +224,19 @@ for (const slug of ['base', 'circuit-breaker', 'pressure-gauge'])
         () =>
           binaries.some(
             (url) =>
-              url.includes(`scenes/${slug}/`) && url.endsWith(slug === 'base' ? '.spz' : '.radc'),
+              decodeURIComponent(url).includes(`public-scenes/${slug}/revisions/`) &&
+              decodeURIComponent(url).includes(
+                slug === 'base' ? '.spz?alt=media' : '.radc?alt=media',
+              ),
           ),
         { timeout: 90_000 },
       )
       .toBe(true);
     await expect(page.getByRole('heading', { name: 'Scene closed' })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Opening scene…' })).toHaveCount(0, {
+      timeout: 90_000,
+    });
+    expect(binaries.every((url) => new URL(url).origin === 'http://127.0.0.1:9399')).toBe(true);
     expect(errors).toEqual([]);
     await page.getByRole('link', { name: '← Catalog' }).click();
     await expect(page.locator('canvas')).toHaveCount(0);

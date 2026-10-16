@@ -9,6 +9,7 @@ import { ParticleEmitter } from '../../runtime/spark/ParticleEmitter';
 import { SplatEdit } from '../../runtime/spark/SplatEdit';
 import { SplatModel } from '../../runtime/spark/SplatModel';
 import { useUI } from '../../runtime/ui/UIContext';
+import { useSceneReadiness } from '../useSceneReadiness';
 
 const SCENE_SPLATS_URL = `${import.meta.env.BASE_URL}scenes/circuit-breaker/splats-lod.rad`;
 const SCENE_COLLIDERS_URL = `${import.meta.env.BASE_URL}scenes/circuit-breaker/colliders.glb`;
@@ -56,8 +57,29 @@ const burntBreakerFlameProps = {
   rotation: [0.0, 3.4, 0.0],
 } as const;
 
-export const CircuitBreakerScene = () => {
-  const { spawn, setHeldItem, idleTime, getOrientation } = usePlayer();
+type CircuitBreakerSceneProps = {
+  splatsUrl?: string;
+  collidersUrl?: string;
+  electricBoxUrl?: string;
+  circuitBreakerUrl?: string;
+  circuitBreakerSetUrl?: string;
+  boxUrl?: string;
+  resolvePageUrl?: (filename: string) => string;
+  onReady?: () => void;
+};
+
+export const CircuitBreakerScene = ({
+  splatsUrl = SCENE_SPLATS_URL,
+  collidersUrl = SCENE_COLLIDERS_URL,
+  electricBoxUrl = ELECTRIC_BOX_URL,
+  circuitBreakerUrl = CIRCUIT_BREAKER_URL,
+  circuitBreakerSetUrl = CIRCUIT_BREAKER_SET_URL,
+  boxUrl = BOX_URL,
+  resolvePageUrl,
+  onReady,
+}: CircuitBreakerSceneProps = {}) => {
+  const { setHeldItem, idleTime, getOrientation } = usePlayer();
+  const readiness = useSceneReadiness(PLAYER_SPAWN_POSITION, onReady);
   const automaticInput = useAutomaticInput();
   const { showScreenFeedback } = useUI();
   const [repairStatus, setRepairStatus] = useState<RepairStatus>('start');
@@ -106,7 +128,7 @@ export const CircuitBreakerScene = () => {
 
     setHeldItem(
       <GltfModel
-        url={CIRCUIT_BREAKER_URL}
+        url={circuitBreakerUrl}
         position={[0.0, 0.0, 0.0]}
         rotation={[0.0, 0.0, 0.0]}
         scale={0.016}
@@ -116,21 +138,32 @@ export const CircuitBreakerScene = () => {
     return () => {
       setHeldItem(null);
     };
-  }, [repairStatus, setHeldItem]);
+  }, [circuitBreakerUrl, repairStatus, setHeldItem]);
 
   return (
     <group>
       <color attach="background" args={['#000000']} />
       <ambientLight intensity={0.1} />
       {powerOutage ? null : <directionalLight position={[10, 10, -5]} />}
-      <SplatModel url={SCENE_SPLATS_URL} paged onInitialized={() => spawn(PLAYER_SPAWN_POSITION)}>
+      <SplatModel
+        url={splatsUrl}
+        format="rad"
+        paged
+        resolvePageUrl={resolvePageUrl}
+        onInitialized={readiness.splatsReady}
+      >
         {powerOutage ? <SplatEdit type="all" color={[0.1, 0.1, 0.1]} /> : null}
       </SplatModel>
-      <GltfModel url={SCENE_COLLIDERS_URL} visible={false} physicality="fixed" />
+      <GltfModel
+        url={collidersUrl}
+        visible={false}
+        physicality="fixed"
+        onReady={readiness.collidersReady}
+      />
       <ParticleEmitter {...burntBreakerSmokeProps} emitting={repairStatus === 'overloaded'} />
       {repairStatus === 'overloaded' ? <ParticleEmitter {...burntBreakerFlameProps} /> : null}
       <GltfModel
-        url={BOX_URL}
+        url={boxUrl}
         position={[-3.5, 1.87, -0.55]}
         rotation={[0.0, 0.2, 0.0]}
         scale={[0.4, 1.15, 0.75]}
@@ -152,7 +185,7 @@ export const CircuitBreakerScene = () => {
         }
       />
       <GltfModel
-        url={BOX_URL}
+        url={boxUrl}
         position={[0.15, 1.0, -1.76]}
         rotation={[0.0, 0.14, 0.0]}
         scale={[0.5, 0.5, 0.2]}
@@ -174,40 +207,40 @@ export const CircuitBreakerScene = () => {
         }
       />
       <GltfModel
-        url={ELECTRIC_BOX_URL}
+        url={electricBoxUrl}
         position={[-12.26, 0.05, 4.75]}
         rotation={[0, 1.8, 0]}
         scale={1.9}
       />
       <GltfModel
-        url={CIRCUIT_BREAKER_SET_URL}
+        url={circuitBreakerSetUrl}
         position={[-12.25, 1.9, 4.83]}
         rotation={[0.0, 0.2, 0.0]}
         scale={0.015}
       />
       <GltfModel
-        url={CIRCUIT_BREAKER_URL}
+        url={circuitBreakerUrl}
         position={[-12.24, 1.68, 4.99]}
         rotation={[0.0, 3.4, 0.0]}
         scale={0.016}
         interaction={{ label: 'Remove', action: showWrongInteractionFeedback }}
       />
       <GltfModel
-        url={CIRCUIT_BREAKER_URL}
+        url={circuitBreakerUrl}
         position={[-12.26, 1.68, 4.92]}
         rotation={[0.0, 3.4, 0.0]}
         scale={0.016}
         interaction={{ label: 'Remove', action: showWrongInteractionFeedback }}
       />
       <GltfModel
-        url={CIRCUIT_BREAKER_URL}
+        url={circuitBreakerUrl}
         position={[-12.28, 1.68, 4.85]}
         rotation={[0.0, 3.4, 0.0]}
         scale={0.016}
         interaction={{ label: 'Remove', action: showWrongInteractionFeedback }}
       />
       <GltfModel
-        url={CIRCUIT_BREAKER_URL}
+        url={circuitBreakerUrl}
         position={[-12.4, 1.73, 4.48]}
         rotation={[0.0, 3.4, 0.0]}
         scale={0.016}
@@ -227,14 +260,14 @@ export const CircuitBreakerScene = () => {
         }
       />
       <GltfModel
-        url={CIRCUIT_BREAKER_URL}
+        url={circuitBreakerUrl}
         position={[-12.42, 1.73, 4.4]}
         rotation={[0.0, 3.4, 0.0]}
         scale={0.016}
         interaction={{ label: 'Remove', action: showWrongInteractionFeedback }}
       />
       <GltfModel
-        url={CIRCUIT_BREAKER_URL}
+        url={circuitBreakerUrl}
         position={[-11, 1.4, -13]}
         rotation={[0.0, 0.0, 0.0]}
         scale={0.016}

@@ -1,11 +1,13 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 
 import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 
+import { importLegacyAssets, planLegacyImport } from '../src/legacy-assets.ts';
 import { organizationService } from '../src/service.ts';
 
 import type { SceneDescriptor } from '../../src/contracts/scene.ts';
@@ -30,6 +32,7 @@ const service = organizationService(db, auth);
 const bucket = getStorage(app).bucket();
 export const password = 'Portal-demo-only-123!';
 const descriptors = new Map<string, SceneDescriptor>();
+const publicDescriptors = new Map<string, unknown>();
 export async function prepare() {
   for (const uid of ['admin', 'viewer', 'outsider', 'unverified']) {
     const data = {
@@ -43,6 +46,27 @@ export async function prepare() {
     } catch {
       await auth.createUser({ uid, ...data });
     }
+  }
+  await db.doc('publicSettings/delivery').set({ downloadsEnabled: true });
+  for (const scene of ['base', 'circuit-breaker', 'pressure-gauge'] as const) {
+    const plan = await planLegacyImport(
+      fileURLToPath(new URL('../../public', import.meta.url)),
+      scene,
+      'legacy-v1',
+      'alpha',
+    );
+    const [exists] = await bucket.file(plan.files[0].asset.path).exists();
+    if (!exists) {
+      const imported = await importLegacyAssets(db, bucket, plan);
+      publicDescriptors.set(scene, imported.descriptor);
+    } else
+      publicDescriptors.set(scene, {
+        schemaVersion: 1,
+        kind: 'public-demo-v1',
+        sceneId: scene,
+        revisionId: 'legacy-v1',
+        assets: Object.fromEntries(plan.files.map(({ name, asset }) => [name, asset])),
+      });
   }
   for (const revision of ['r1', 'r2']) {
     const prefix = `organizations/alpha/scenes/drill-rig/revisions/${revision}/`;
@@ -108,6 +132,14 @@ export async function reset() {
       descriptor,
     });
   batch.set(db.doc('publicSettings/delivery'), { downloadsEnabled: true });
+  for (const [scene, descriptor] of publicDescriptors)
+    batch.set(db.doc(`publicScenes/${scene}`), {
+      version: 1,
+      status: 'published',
+      title: scene,
+      publishedRevisionId: 'legacy-v1',
+      descriptor,
+    });
   await batch.commit();
 }
 export async function invitation(email = 'outsider@example.test') {

@@ -15,11 +15,22 @@
     }
   ],
   "hosting": {
-    "public": "dist",
+    "public": "build/portal/browser",
+    "predeploy": ["pnpm web:check"],
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "headers": [
+      {
+        "regex": ".*",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-store" },
+          { "key": "X-Content-Type-Options", "value": "nosniff" },
+          { "key": "Referrer-Policy", "value": "no-referrer" }
+        ]
+      }
+    ],
     "rewrites": [
       {
-        "source": "**",
+        "regex": ".*",
         "destination": "/index.html"
       }
     ]

@@ -1,4 +1,4 @@
-import { computed, Injectable, signal } from '@angular/core';
+import { computed, inject, Injectable, signal } from '@angular/core';
 import { initializeApp } from 'firebase/app';
 import {
   browserSessionPersistence,
@@ -17,7 +17,7 @@ import {
 import { connectFunctionsEmulator, getFunctions, httpsCallable } from 'firebase/functions';
 import { connectStorageEmulator, getStorage } from 'firebase/storage';
 
-import { firebaseConfig } from './firebase-config';
+import { PORTAL_CONFIG } from './firebase-config';
 import { createIdentity } from '../../src/adapters/firebase/identity';
 
 type Identity = { uid: string; email: string | null; verified: boolean };
@@ -42,11 +42,13 @@ export class ViewerLease {
 
 @Injectable({ providedIn: 'root' })
 export class PortalSession {
-  private readonly app = initializeApp(firebaseConfig, 'portal');
+  private readonly config = inject(PORTAL_CONFIG);
+  private readonly app = initializeApp(this.config.firebase, 'portal');
   readonly auth = getAuth(this.app);
   readonly db = getFirestore(this.app);
   readonly functions = getFunctions(this.app, 'us-central1');
   readonly storage = getStorage(this.app);
+  readonly storageOrigin = this.config.mode === 'emulator' ? 'http://127.0.0.1:9399' : undefined;
   readonly identity = createIdentity(this.auth);
   readonly user = signal<Identity | null>(null);
   readonly uid = computed(() => this.user()?.uid ?? null);
@@ -64,12 +66,12 @@ export class PortalSession {
   });
 
   constructor() {
-    if (!['localhost', '127.0.0.1'].includes(location.hostname))
-      throw new Error('This portal build requires local demo emulators.');
-    connectAuthEmulator(this.auth, 'http://127.0.0.1:9199', { disableWarnings: true });
-    connectFirestoreEmulator(this.db, '127.0.0.1', 8280);
-    connectFunctionsEmulator(this.functions, '127.0.0.1', 5101);
-    connectStorageEmulator(this.storage, '127.0.0.1', 9399);
+    if (this.config.mode === 'emulator') {
+      connectAuthEmulator(this.auth, 'http://127.0.0.1:9199', { disableWarnings: true });
+      connectFirestoreEmulator(this.db, '127.0.0.1', 8280);
+      connectFunctionsEmulator(this.functions, '127.0.0.1', 5101);
+      connectStorageEmulator(this.storage, '127.0.0.1', 9399);
+    }
     void setPersistence(this.auth, browserSessionPersistence).then(() => {
       onIdTokenChanged(this.auth, (user) => {
         this.user.set(

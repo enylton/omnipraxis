@@ -14,6 +14,7 @@ import { usePlayer } from '../../runtime/player/PlayerContext';
 import { ParticleEmitter } from '../../runtime/spark/ParticleEmitter';
 import { SplatModel } from '../../runtime/spark/SplatModel';
 import { useUI } from '../../runtime/ui/UIContext';
+import { useSceneReadiness } from '../useSceneReadiness';
 
 import type { Valve } from './pressure';
 import type { SimulationAction } from './simulation';
@@ -39,8 +40,33 @@ const JUSANTE_CLIP = 'Roda_Duas_Voltas.001';
 const VENTEIO_CLIP = 'CONTROLE_Alavanca_AnimadaAction.002';
 const MANOMETRO_CLIP = 'Ponteiro_Inicio_Ao_Final';
 
-export const PressureGaugeScene = () => {
-  const { spawn, idleTime, getOrientation, setHeldItem } = usePlayer();
+type PressureGaugeSceneProps = {
+  splatsUrl?: string;
+  collidersUrl?: string;
+  ductUrl?: string;
+  leftValveUrl?: string;
+  rightValveUrl?: string;
+  gaugeUrl?: string;
+  ventUrl?: string;
+  boxUrl?: string;
+  resolvePageUrl?: (filename: string) => string;
+  onReady?: () => void;
+};
+
+export const PressureGaugeScene = ({
+  splatsUrl = SCENE_SPLATS_URL,
+  collidersUrl = SCENE_COLLIDERS_URL,
+  ductUrl = DUTO_SEM_VALVULAS_URL,
+  leftValveUrl = VOLANTE_ESQUERDO_URL,
+  rightValveUrl = VOLANTE_DIREITO_URL,
+  gaugeUrl = MANOMETRO_URL,
+  ventUrl = VENTEIO_URL,
+  boxUrl = BOX_URL,
+  resolvePageUrl,
+  onReady,
+}: PressureGaugeSceneProps = {}) => {
+  const { idleTime, getOrientation, setHeldItem } = usePlayer();
+  const readiness = useSceneReadiness(PLAYER_SPAWN_POSITION, onReady);
   const { showScreenFeedback } = useUI();
   const eventLog = useEventLog();
   const initialStateLogged = useRef(false);
@@ -95,12 +121,12 @@ export const PressureGaugeScene = () => {
   };
 
   useEffect(() => {
-    setHeldItem(stage === 'collected' ? <ReplacementGauge carried /> : null);
+    setHeldItem(stage === 'collected' ? <ReplacementGauge carried url={gaugeUrl} /> : null);
 
     return () => {
       setHeldItem(null);
     };
-  }, [setHeldItem, stage]);
+  }, [gaugeUrl, setHeldItem, stage]);
 
   useLayoutEffect(() => {
     montanteRef.current?.setClipBehavior(MONTANTE_CLIP, { start: 1, speed: 0 });
@@ -175,18 +201,29 @@ export const PressureGaugeScene = () => {
       <ambientLight intensity={1.0} />
       <directionalLight position={[10, 10, -5]} />
       <directionalLight position={[10, 5, 5]} />
-      <SplatModel url={SCENE_SPLATS_URL} paged onInitialized={() => spawn(PLAYER_SPAWN_POSITION)} />
-      <GltfModel url={SCENE_COLLIDERS_URL} visible={false} physicality="fixed" />
+      <SplatModel
+        url={splatsUrl}
+        format="rad"
+        paged
+        resolvePageUrl={resolvePageUrl}
+        onInitialized={readiness.splatsReady}
+      />
+      <GltfModel
+        url={collidersUrl}
+        visible={false}
+        physicality="fixed"
+        onReady={readiness.collidersReady}
+      />
       <group
         name="pressure-gauge-assembly"
         position={[4.8, 0.02, 2.6]}
         rotation={[0, -1.8, 0]}
         scale={0.3}
       >
-        <GltfModel url={DUTO_SEM_VALVULAS_URL} />
+        <GltfModel url={ductUrl} />
         <GltfModel
           ref={jusanteRef}
-          url={VOLANTE_ESQUERDO_URL}
+          url={leftValveUrl}
           interaction={
             !canOperateValve(simulation, 'jusante')
               ? null
@@ -197,7 +234,7 @@ export const PressureGaugeScene = () => {
         />
         <GltfModel
           ref={montanteRef}
-          url={VOLANTE_DIREITO_URL}
+          url={rightValveUrl}
           interaction={
             !canOperateValve(simulation, 'montante')
               ? null
@@ -208,7 +245,7 @@ export const PressureGaugeScene = () => {
         />
         <GltfModel
           ref={installedGaugeRef}
-          url={MANOMETRO_URL}
+          url={gaugeUrl}
           opacity={stage === 'removed' || stage === 'collected' ? 0 : 1}
           blocksInteractions={stage !== 'removed' && stage !== 'collected'}
           interaction={
@@ -229,7 +266,7 @@ export const PressureGaugeScene = () => {
         />
         <GltfModel
           ref={venteioRef}
-          url={VENTEIO_URL}
+          url={ventUrl}
           interaction={
             !canOperateValve(simulation, 'venteio')
               ? null
@@ -238,7 +275,7 @@ export const PressureGaugeScene = () => {
                 : { label: 'Abrir venteio', action: () => setValveOpen('venteio', true) }
           }
         />
-        <GltfModel url={BOX_URL} visible={false} physicality="fixed" scale={[12, 5, 2]} />
+        <GltfModel url={boxUrl} visible={false} physicality="fixed" scale={[12, 5, 2]} />
         <ParticleEmitter
           {...ventGasProps}
           velocity={() => getGasVelocity(displayedPressure.current)}
@@ -253,6 +290,7 @@ export const PressureGaugeScene = () => {
       </group>
       {stage === 'isolating' || stage === 'isolated' || stage === 'removed' ? (
         <ReplacementGauge
+          url={gaugeUrl}
           interaction={
             stage === 'removed' && activeValve === null
               ? { label: 'Coletar manômetro', action: () => applyAction({ type: 'collect-gauge' }) }

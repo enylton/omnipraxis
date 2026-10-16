@@ -71,6 +71,7 @@ vite.config.ts.timestamp-*
 
 # Serverless
 .serverless
+.firebase/
 
 # Editors
 .vscode/*

@@ -1,5 +1,9 @@
 # Organization backend (emulator-only verification)
 
+Trusted legacy imports are implemented in `src/legacy-assets.ts`; the root `pnpm assets:import` is dry-run by default and its `--apply` CLI accepts only fixed demo endpoints. It imports the three public templates/props and organization-scoped Drill Rig with checksums, immutable generations, quota accounting and optimistic publication. See [cloud cutover](../docs/cloud-cutover.md) for commands, retry/conflict handling and separately authorized cloud/privacy gates.
+
+Post-read token safety is not certified: the installed Storage emulator adds a download token on successful Firebase GETs, including media requests. The new import regression records its resulting bearer-token rules bypass. Initial-write metadata checks still pass and importer retries reject token-bearing objects; actual cloud post-read behavior must be verified/resolved before enabling live delivery. See the release blocker in the cutover guide.
+
 This implements the backend policy and organization lifecycle used by [the Angular portal](../portal/README.md). No live provider/rules/functions deployment, database/bucket provisioning, first live administrator selection, or production bootstrap is performed. Keep the Phase 1 viewer proof separate.
 
 ## Run

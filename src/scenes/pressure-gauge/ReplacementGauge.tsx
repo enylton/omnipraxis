@@ -3,6 +3,7 @@ import { GltfModel } from '../../runtime/assets/GltfModel';
 import type { PlayerInteraction } from '../../runtime/player/PlayerContext';
 
 type ReplacementGaugeProps = {
+  url?: string;
   carried?: boolean;
   interaction?: PlayerInteraction | null;
 };
@@ -10,6 +11,7 @@ type ReplacementGaugeProps = {
 const MANOMETRO_URL = `${import.meta.env.BASE_URL}assets/manometro.glb`;
 
 export const ReplacementGauge = ({
+  url = MANOMETRO_URL,
   carried = false,
   interaction = null,
 }: ReplacementGaugeProps) => (
@@ -20,7 +22,7 @@ export const ReplacementGauge = ({
     scale={0.3}
   >
     <GltfModel
-      url={MANOMETRO_URL}
+      url={url}
       position={[-0.9, -3, 0]}
       interaction={interaction}
       blocksInteractions={!carried}

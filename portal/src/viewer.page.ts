@@ -3,7 +3,9 @@ import { RouterLink } from '@angular/router';
 import { doc, getDocFromServer, onSnapshot } from 'firebase/firestore';
 
 import { PortalSession, ViewerLease } from './session';
+import { resolvePublicAssets } from '../../src/adapters/firebase/publicAssets';
 import { resolveStorageAssets } from '../../src/adapters/firebase/sceneAssets';
+import { parsePublicScene } from '../../src/contracts/publicScene';
 import { parseSceneDescriptor } from '../../src/contracts/scene';
 
 import type { ResolvedSceneAssets } from '../../src/adapters/firebase/sceneAssets';
@@ -122,7 +124,7 @@ export class ViewerPage {
     const controller = new AbortController();
     let closed = false;
     let mounted: ViewerHandle | undefined;
-    let assets: ResolvedSceneAssets | undefined;
+    let assets: Pick<ResolvedSceneAssets, 'dispose'> | undefined;
     const subscriptions: (() => void)[] = [];
     this.state.set('loading');
     this.message.set('Checking access and downloading scene assets.');
@@ -149,6 +151,56 @@ export class ViewerPage {
         return;
       }
       if (demo) {
+        let descriptor: ReturnType<typeof parsePublicScene> | undefined;
+        let revision: string | undefined;
+        await new Promise<void>((resolve) => {
+          const denied = () => {
+            failed();
+            resolve();
+          };
+          subscriptions.push(
+            onSnapshot(
+              doc(this.session.db, 'publicScenes', demo),
+              { includeMetadataChanges: true },
+              (snapshot) => {
+                if (closed || snapshot.metadata.fromCache) return;
+                try {
+                  if (!snapshot.exists() || snapshot.get('status') !== 'published')
+                    throw new Error('Public scene unavailable.');
+                  const current = parsePublicScene(snapshot.get('descriptor'));
+                  if (
+                    current.sceneId !== demo ||
+                    current.revisionId !== snapshot.get('publishedRevisionId')
+                  )
+                    throw new Error('Public revision identity mismatch.');
+                  if (revision && revision !== current.revisionId) {
+                    stop('This scene has changed. Reopen it to load the latest version.');
+                  } else {
+                    revision = current.revisionId;
+                    descriptor = current;
+                  }
+                  resolve();
+                } catch {
+                  denied();
+                }
+              },
+              denied,
+            ),
+          );
+          controller.signal.addEventListener('abort', () => resolve(), { once: true });
+        });
+        if (closed || !descriptor) return;
+        const acquired = await resolvePublicAssets(
+          this.session.storage,
+          descriptor,
+          controller.signal,
+          this.session.storageOrigin,
+        );
+        assets = acquired;
+        if (closed) {
+          acquired.dispose();
+          return;
+        }
         const url = new URL('/public-viewer/public-demos.js', location.origin).href;
         const [module] = await Promise.all([
           import(/* @vite-ignore */ url) as Promise<{ mountPublicDemo: MountPublicDemo }>,
@@ -156,11 +208,16 @@ export class ViewerPage {
         ]);
         if (closed) return;
         mounted = module.mountPublicDemo(host, {
-          apiVersion: 1,
+          apiVersion: 2,
           scene: demo,
+          assets: acquired.assets,
+          releaseAssets: acquired.dispose,
+          onReady: () => {
+            if (!closed) this.state.set('viewing');
+          },
           onError: () => queueMicrotask(failed),
+          onSessionComplete: (snapshot) => this.exportSession(snapshot),
         });
-        this.state.set('viewing');
         return;
       }
       if (!uid || !verified || !orgId || !sceneId) {
@@ -257,12 +314,13 @@ export class ViewerPage {
         descriptor.revisionId !== revision
       )
         throw new Error('Revision identity mismatch.');
-      assets = await resolveStorageAssets(
+      const acquired = await resolveStorageAssets(
         this.session.storage,
         descriptor,
         controller.signal,
-        'http://127.0.0.1:9399',
+        this.session.storageOrigin,
       );
+      assets = acquired;
       if (closed) {
         assets.dispose();
         return;
@@ -275,27 +333,28 @@ export class ViewerPage {
       if (closed) return;
       mounted = module.mountViewer(host, {
         apiVersion: 1,
-        scene: assets.scene,
+        scene: acquired.scene,
         releaseAssets: assets.dispose,
         onReady: () => {
           if (!closed) this.state.set('viewing');
         },
         onError: () => queueMicrotask(failed),
-        onSessionComplete: (snapshot) => {
-          const url = URL.createObjectURL(
-            new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' }),
-          );
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = 'scene-session.json';
-          link.click();
-          setTimeout(() => URL.revokeObjectURL(url), 0);
-        },
+        onSessionComplete: (snapshot) => this.exportSession(snapshot),
       });
     };
     void run().catch(() => {
       if (!closed) failed();
     });
     return stop;
+  }
+  private exportSession(snapshot: unknown) {
+    const url = URL.createObjectURL(
+      new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' }),
+    );
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'scene-session.json';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 }

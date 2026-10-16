@@ -57,22 +57,25 @@ pnpm install
 
 ## Development
 
-Start the development server:
+Start the demo backend in one terminal:
 
 ```bash
-pnpm dev
+pnpm backend:build
+pnpm backend:emulators
 ```
 
-Start the Angular portal with `pnpm portal:dev` after starting the local demo emulators. See [the portal guide](portal/README.md) for setup, demo accounts and verification. `pnpm dev` and `pnpm run dev` still start the original Vite application; production entry/deployment cutover is pending.
+In another terminal, seed a fresh emulator session with `pnpm portal:seed`, then run `pnpm dev` (equivalent to `pnpm portal:dev`). Open <http://127.0.0.1:4200>. Seeding resets local demo metadata; omit it when restarting only the frontend. Install the backend dependencies with `pnpm --dir functions install --frozen-lockfile` on a new checkout. See [the portal guide](portal/README.md) for prerequisites, demo accounts and verification.
+
+The original Vite application is available through `pnpm legacy:dev` for local compatibility work. The default web build and Firebase Hosting configuration use Angular and exclude scene binaries. Live deployment remains pending; see [cloud cutover](docs/cloud-cutover.md).
 
 ## Scenes
 
 The root application route displays the available scene index. The current routes are:
 
-- `/omnipraxis/base` for the base splat environment.
-- `/omnipraxis/circuit-breaker` for the circuit breaker training scene.
+- `/base`, `/circuit-breaker` and `/pressure-gauge` for anonymous demonstrations loaded from controlled Storage paths.
+- `/drill-rig` for verified sign-in and organization selection; restricted viewing uses organization scene routes.
 
-Scene links use client-side history navigation and browser Back returns to the index. GitHub Pages currently serves only the root `index.html`, so nested scene routes are not yet direct-load or refresh entry points.
+Angular supports client-side history navigation; the prepared Firebase Hosting configuration rewrites deep links to the portal. Pages deployment has been retired in source, but existing public deployments/history still require operator cleanup before claiming Drill Rig confidentiality.
 
 To add a scene, create a prop-free scene component in `src/scenes/`, add its public slug and title to `sceneManifest.ts`, and map that slug to the component in `sceneRegistry.ts`. Public asset URLs must use `import.meta.env.BASE_URL`.
 
@@ -116,6 +119,8 @@ Create a production build:
 ```bash
 pnpm build
 ```
+
+Output is `build/portal/browser`; `pnpm web:check` rejects scene binaries in it. Production configuration and live rollout are separate steps in [cloud cutover](docs/cloud-cutover.md).
 
 ## Preview
 

@@ -1,0 +1,11 @@
+{
+  "mode": "firebase",
+  "firebase": {
+    "apiKey": "REPLACE_WITH_REVIEWED_WEB_CONFIG",
+    "projectId": "omnipraxis-f8141",
+    "authDomain": "omnipraxis-f8141.firebaseapp.com",
+    "storageBucket": "REPLACE_WITH_EXISTING_BUCKET",
+    "appId": "REPLACE_WITH_WEB_APP_ID"
+  },
+  "allowedOrigins": ["https://omnipraxis-f8141.web.app", "https://omnipraxis-f8141.firebaseapp.com"]
+}

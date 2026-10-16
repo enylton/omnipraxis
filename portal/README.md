@@ -1,6 +1,6 @@
 # Angular portal
 
-The portal implements sign-in, invitation acceptance, organization catalogs and the viewer host. It uses the shared root `firebase.json` and demo backend, with no phase selector. The original `pnpm dev` and deployment target remain the legacy application until production cutover.
+The portal implements sign-in, invitation acceptance, organization catalogs, administration and the viewer host. It uses the shared root `firebase.json`, with no phase selector. `pnpm dev`, `pnpm build` and `pnpm preview` now target Angular. Loopback development uses the demo backend; remote origins require explicitly supplied, reviewed production configuration. No live cutover has been performed.
 
 ## Run locally
 
@@ -45,7 +45,7 @@ pnpm portal:preview
 pnpm portal:check
 ```
 
-The build outputs `build/portal/browser`; the local preview supports SPA refreshes and byte ranges. Angular imports only emitted viewer API declarations. React/Spark/physics load on scene routes, never catalog/account routes. After renderer source edits, rebuild/restart `portal:dev` to regenerate its artifacts.
+The build outputs `build/portal/browser`; the local preview supports SPA refreshes. No scene binaries or props are copied into this output; `web:check` enforces this. The seed imports the three public demonstrations and their props into versioned demo Storage paths. Angular imports only emitted viewer API declarations. React/Spark/physics load on scene routes, never catalog/account routes. After renderer source edits, rebuild/restart `portal:dev` to regenerate its artifacts.
 
 `portal:check` builds backend/viewers/portal, typechecks browser fixtures, starts demo emulators, tests the built portal in installed Edge and stops services. It needs free ports 4200/9199/5101/8280/9151/9399/4401/4501. Stop a manually running emulator suite first. `backend:check` verifies policy separately; `viewer:check` retains the historical compatibility fixture. Evidence stays under ignored `build/`.
 
@@ -65,6 +65,6 @@ After transfer, explicitly validate. Validation errors leave the current publish
 
 Only the server writes Storage, through authenticated 1 MiB chunk commands. No Firebase upload/download tokens or signed/bearer upload URLs are handed to the browser. This costs more backend requests than direct uploads; measure actual cloud usage before release. The managed-asset ledger reserves staging plus revision bytes, permits one active upload per admin/two per organization, and retains reservation until cleanup succeeds. See [backend operations](../functions/README.md) for cleanup, quotas and live-release gates.
 
-The public adapter temporarily bundles the three original scripted scenes separately from the environment-only viewer API. The portal copies only their public assets/shared props; Drill Rig is excluded from its build and loaded from authorized emulator Storage. Phase 5 will inject controlled cloud URLs into the public templates. Until cutover, the repository/history, legacy application and existing deployments retain previous delivery behavior. Production confidentiality and complete cost suspension are not certified.
+The public adapter bundles the three compiled templates separately from the environment-only viewer API. Public Demo API v2 accepts resolved, checksum-verified asset URLs plus a revision-scoped page resolver, readiness/completion callbacks and disposal; it receives no Firebase identity. Public RAD pages remain lazy, anonymous and tokenless. Replacement closes public and private viewers and requires reopening. The scene adapters preserve local defaults for legacy/desktop compatibility; the Angular host supplies every asset. See [cloud cutover](../docs/cloud-cutover.md) for trusted imports, runtime configuration and the live/privacy gates. Existing repository history/deployments have not been retired by a local build; production confidentiality and complete cost suspension are not certified.
 
 Physical devices, all scripted training interactions and actual completion exports still need manual acceptance. Browser input smoke checks do not certify real OAuth, live IAM/CORS/indexes or production deployment.
