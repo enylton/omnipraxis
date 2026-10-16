@@ -5,13 +5,14 @@ export default defineConfig({
   testMatch: '**/*.browser.ts',
   timeout: 180_000,
   workers: 1,
-  reporter: 'list',
+  reporter: [['list'], ['html', { outputFolder: '../build/portal-report', open: 'never' }]],
   outputDir: '../build/portal-tests',
   use: {
     baseURL: 'http://127.0.0.1:4200',
     channel: 'msedge',
     launchOptions: { args: ['--disable-gpu-sandbox'] },
     screenshot: 'only-on-failure',
+    trace: 'retain-on-failure',
   },
   webServer: {
     command: 'node portal/serve.ts',

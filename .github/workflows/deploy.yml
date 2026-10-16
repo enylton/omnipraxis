@@ -9,22 +9,24 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# Pages delivery is retired. This workflow verifies code without publishing assets.
+# Pages delivery is retired. Only gated, verified main artifacts reach Hosting.
 permissions:
   contents: read
 
-# Allow one concurrent deployment
+# Serialize main releases; cancel superseded pull-request verification only.
 concurrency:
   group: 'verify-${{ github.ref }}'
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
+          fetch-depth: 0
           lfs: true
 
       - name: Checkout LFS objects
@@ -55,8 +57,23 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Verify backend in demo emulators
-        run: pnpm backend:check
+      - name: Install browser and Linux dependencies
+        run: pnpm exec playwright install --with-deps msedge
+
+      - name: Build backend and integration types
+        run: pnpm backend:build
+
+      - name: Verify backend in fresh demo emulators
+        run: pnpm exec firebase emulators:exec --project demo-omnipraxis --only auth,firestore,storage,functions "pnpm backend:test"
+
+      - name: Verify portal in fresh demo emulators
+        run: pnpm exec firebase emulators:exec --project demo-omnipraxis --only auth,firestore,storage,functions "pnpm portal:test"
+
+      - name: Verify upstream viewer compatibility and desktop renderer
+        run: pnpm viewer:check
+
+      - name: Verify Hosting deep links and binary exclusion
+        run: pnpm hosting:check
 
       - run: pnpm release:test
       - run: pnpm release:record
@@ -69,3 +86,23 @@ jobs:
             build/release-manifest.json
           if-no-files-found: error
           retention-days: 7
+
+      - name: Preserve browser diagnostics
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: browser-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            build/portal-tests
+            build/portal-report
+            build/phase1/browser-results
+            build/phase1/*.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+  deploy_hosting:
+    needs: verify
+    if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && vars.CLOUD_CUTOVER_READY == 'true' }}
+    uses: ./.github/workflows/firebase-hosting-merge.yml
+    secrets:
+      FIREBASE_SERVICE_ACCOUNT_OMNIPRAXIS_F8141: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_OMNIPRAXIS_F8141 }}
