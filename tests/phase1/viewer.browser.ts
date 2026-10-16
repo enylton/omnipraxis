@@ -2,51 +2,71 @@ import { stat, writeFile } from 'node:fs/promises';
 
 import { expect, test } from '@playwright/test';
 
-test('built viewer renders a local specification without a Firebase descriptor', async ({
-  page,
-}) => {
-  const errors: string[] = [];
-  page.on('pageerror', (error) => errors.push(error.message));
-  await page.goto('/');
-  await page.evaluate(async () => {
-    const viewerUrl = '/build/viewer/viewer.js';
-    const { mountViewer } = (await import(viewerUrl)) as typeof import('../../src/viewer/index');
-    let releases = 0;
-    await new Promise<void>((resolve, reject) => {
-      const viewer = mountViewer(document.querySelector<HTMLElement>('#viewer')!, {
-        scene: {
-          template: 'environment',
-          sessionId: 'local viewing session',
-          assets: {
-            splatsUrl: 'http://127.0.0.1:4175/omnipraxis/scenes/base/splats.spz',
-            splatsFormat: 'spz',
-            collidersUrl: 'http://127.0.0.1:4175/omnipraxis/scenes/base/colliders.glb',
-          },
-          spawn: { position: [0, 1.7, 0], yaw: 0, pitch: 0 },
-        },
-        releaseAssets: () => releases++,
-        onReady: resolve,
-        onError: reject,
-      });
-      Object.assign(window, {
-        disposeNeutralViewer: () => {
-          viewer.dispose();
-          viewer.dispose();
-          return releases;
-        },
-      });
+for (const splatsFormat of ['spz', 'rad'] as const) {
+  test(`built viewer renders local ${splatsFormat} without a Firebase descriptor`, async ({
+    page,
+  }) => {
+    const errors: string[] = [];
+    const pages: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    page.on('response', (response) => {
+      if (response.url().includes('.radc') && response.ok()) pages.push(response.url());
     });
+    await page.goto('/');
+    await page.evaluate(async (splatsFormat) => {
+      const viewerUrl = '/build/viewer/viewer.js';
+      const { mountViewer } = (await import(viewerUrl)) as typeof import('../../src/viewer/index');
+      const folder = splatsFormat === 'rad' ? 'circuit-breaker' : 'base';
+      const assetsRoot = `http://127.0.0.1:4175/omnipraxis/scenes/${folder}/`;
+      let releases = 0;
+      await new Promise<void>((resolve, reject) => {
+        const viewer = mountViewer(document.querySelector<HTMLElement>('#viewer')!, {
+          scene: {
+            template: 'environment',
+            sessionId: 'local viewing session',
+            assets: {
+              splatsUrl: `${assetsRoot}${splatsFormat === 'rad' ? 'splats-lod.rad' : 'splats.spz'}`,
+              splatsFormat,
+              collidersUrl: `${assetsRoot}colliders.glb`,
+              resolvePageUrl:
+                splatsFormat === 'rad'
+                  ? (filename) => `${assetsRoot}${filename}?resolved=custom`
+                  : undefined,
+            },
+            spawn: { position: [0, 1.7, 0], yaw: 0, pitch: 0 },
+          },
+          releaseAssets: () => releases++,
+          onReady: resolve,
+          onError: reject,
+        });
+        Object.assign(window, {
+          disposeNeutralViewer: () => {
+            viewer.dispose();
+            viewer.dispose();
+            return releases;
+          },
+        });
+      });
+    }, splatsFormat);
+    await expect(page.locator('canvas')).toHaveCount(1);
+    if (splatsFormat === 'rad') {
+      await expect.poll(() => pages.length, { timeout: 30_000 }).toBeGreaterThan(0);
+      expect(
+        pages.every(
+          (url) => url.startsWith('http://127.0.0.1:4175/') && url.includes('?resolved=custom'),
+        ),
+      ).toBe(true);
+    }
+    expect(
+      await page.evaluate(() =>
+        (window as unknown as { disposeNeutralViewer: () => number }).disposeNeutralViewer(),
+      ),
+    ).toBe(1);
+    await expect(page.locator('canvas')).toHaveCount(0);
+    await page.waitForTimeout(1_000);
+    expect(errors).toEqual([]);
   });
-  await expect(page.locator('canvas')).toHaveCount(1);
-  expect(
-    await page.evaluate(() =>
-      (window as unknown as { disposeNeutralViewer: () => number }).disposeNeutralViewer(),
-    ),
-  ).toBe(1);
-  await expect(page.locator('canvas')).toHaveCount(0);
-  await page.waitForTimeout(1_000);
-  expect(errors).toEqual([]);
-});
+}
 
 test('built ESM viewer opens private scenes, denies unassigned identities, and releases ten sessions', async ({
   page,
@@ -120,6 +140,7 @@ test('built ESM viewer opens private scenes, denies unassigned identities, and r
   }
   const settled = samples.slice(2);
   const detached = await cdp.send('DOM.getDetachedDomNodes');
+  await writeFile('build/phase1/detached-dom.json', JSON.stringify(detached, null, 2));
   const [splats, colliders] = await Promise.all([
     stat('public/scenes/base/splats.spz'),
     stat('public/scenes/base/colliders.glb'),

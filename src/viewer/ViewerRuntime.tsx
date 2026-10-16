@@ -1,25 +1,12 @@
-import { useThree } from '@react-three/fiber';
-import { Component, useEffect } from 'react';
+import { Component } from 'react';
 
+import { RendererLifetime } from './compat/RendererLifetime';
 import { EnvironmentScene } from './EnvironmentScene';
 import { RuntimeApp } from '../RuntimeApp';
 
 import type { EnvironmentSceneProps } from './EnvironmentScene';
 import type { SessionSnapshot } from '../runtime/events/EventLogSession';
 import type { ErrorInfo, ReactNode } from 'react';
-
-const RendererLifetime = () => {
-  const renderer = useThree((state) => state.gl);
-  useEffect(
-    () => () => {
-      // R3F performs context/scene teardown after 500 ms. Keep renderer caches
-      // available for pending Spark work until that step has finished.
-      setTimeout(() => renderer.dispose(), 600);
-    },
-    [renderer],
-  );
-  return null;
-};
 
 class ViewerErrorBoundary extends Component<
   { children: ReactNode; onError: (error: Error) => void },

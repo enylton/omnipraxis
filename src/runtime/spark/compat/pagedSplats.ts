@@ -1,12 +1,12 @@
 import { PagedSplats, SplatFileType } from '@sparkjsdev/spark';
 
-export const createStoragePagedSplats = (
+export const createPagedSplats = (
   rootUrl: string,
   resolvePageUrl: (filename: string) => string,
 ): PagedSplats => {
   const splats = new PagedSplats({ rootUrl, fileType: SplatFileType.RAD });
-  // Firebase's media endpoint encodes the full object path. Relative URL resolution
-  // would lose that path. Adapt this instance's metadata, never the global fetch API.
+  // Spark 2.1.0 has no page URL callback. Adapt only this instance's metadata;
+  // URL construction and access policy belong to the caller. See docs/spark-compatibility.md.
   splats.radMetaPromise = splats.getRadMeta().then(({ meta, chunksStart }) => ({
     chunksStart,
     meta: {

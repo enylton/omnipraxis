@@ -2,7 +2,7 @@ import { extend } from '@react-three/fiber';
 import { SplatFileType, SplatMesh as SplatMeshImpl } from '@sparkjsdev/spark';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { createStoragePagedSplats } from './storagePagedSplats';
+import { createPagedSplats } from './compat/pagedSplats';
 
 import type { SplatMeshOptions } from '@sparkjsdev/spark';
 import type { ReactNode } from 'react';
@@ -35,7 +35,7 @@ export const SplatModel = ({
     () => [
       {
         url,
-        paged: resolvePageUrl ? createStoragePagedSplats(url, resolvePageUrl) : paged,
+        paged: resolvePageUrl ? createPagedSplats(url, resolvePageUrl) : paged,
         fileType:
           format === 'spz' ? SplatFileType.SPZ : format === 'rad' ? SplatFileType.RAD : undefined,
       },
@@ -71,6 +71,8 @@ export const SplatModel = ({
     };
   }, [onInitialized, splatMeshArgs]);
 
+  // Keep the Spark 2.1.0 mesh-lifetime workaround in this effect so Strict Mode
+  // cleanup can distinguish an active mesh. See docs/spark-compatibility.md.
   useEffect(() => {
     const mesh = splatMeshRef.current;
     activeMeshRef.current = mesh;
