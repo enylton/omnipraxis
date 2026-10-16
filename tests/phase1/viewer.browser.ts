@@ -2,6 +2,52 @@ import { stat, writeFile } from 'node:fs/promises';
 
 import { expect, test } from '@playwright/test';
 
+test('built viewer renders a local specification without a Firebase descriptor', async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto('/');
+  await page.evaluate(async () => {
+    const viewerUrl = '/build/viewer/viewer.js';
+    const { mountViewer } = (await import(viewerUrl)) as typeof import('../../src/viewer/index');
+    let releases = 0;
+    await new Promise<void>((resolve, reject) => {
+      const viewer = mountViewer(document.querySelector<HTMLElement>('#viewer')!, {
+        scene: {
+          template: 'environment',
+          sessionId: 'local viewing session',
+          assets: {
+            splatsUrl: 'http://127.0.0.1:4175/omnipraxis/scenes/base/splats.spz',
+            splatsFormat: 'spz',
+            collidersUrl: 'http://127.0.0.1:4175/omnipraxis/scenes/base/colliders.glb',
+          },
+          spawn: { position: [0, 1.7, 0], yaw: 0, pitch: 0 },
+        },
+        releaseAssets: () => releases++,
+        onReady: resolve,
+        onError: reject,
+      });
+      Object.assign(window, {
+        disposeNeutralViewer: () => {
+          viewer.dispose();
+          viewer.dispose();
+          return releases;
+        },
+      });
+    });
+  });
+  await expect(page.locator('canvas')).toHaveCount(1);
+  expect(
+    await page.evaluate(() =>
+      (window as unknown as { disposeNeutralViewer: () => number }).disposeNeutralViewer(),
+    ),
+  ).toBe(1);
+  await expect(page.locator('canvas')).toHaveCount(0);
+  await page.waitForTimeout(1_000);
+  expect(errors).toEqual([]);
+});
+
 test('built ESM viewer opens private scenes, denies unassigned identities, and releases ten sessions', async ({
   page,
   browser,

@@ -19,12 +19,12 @@ Use Node 24, the repository-pinned pnpm, Java 21 or newer, fetched Git LFS asset
 ## What this proves
 
 - A versioned, framework-independent environment descriptor scopes asset paths to its organization/public scene and immutable revision. It validates formats, byte bounds, checksums, spawn values, and rejects private paging for this release.
-- `build/viewer/viewer.js` is a self-contained ESM mount/dispose boundary with generated declarations under `build/viewer/types/`. The vanilla TypeScript host loads this artifact rather than compiling React TSX. Firebase initialization and acquisition remain outside the viewer.
+- `build/viewer/viewer.js` is a self-contained ESM mount/dispose boundary with generated declarations under `build/viewer/types/`. The vanilla TypeScript host loads this artifact rather than compiling React TSX. `src/adapters/firebase/sceneAssets.ts` validates the cloud descriptor and resolves downloads into a neutral `ViewerScene`. The viewer accepts resolved URLs/formats, an opaque session label, spawn configuration, and generic callbacks; it does not receive organization records, Storage paths, or Firebase clients. The host passes the adapter's disposal function as `releaseAssets` so closing still releases session object URLs.
 - Verified assigned members can load Drill Rig and a private Base Scene test copy. Unassigned, cross-organization, suspended, missing, anonymous, and unverified identities are denied through rules rather than UI filtering.
 - Direct downloads are checked against descriptor lengths and SHA-256 before object URLs are created. The viewer spawns only after its SPZ and physics GLB are ready.
 - Anonymous Circuit Breaker paging uses tokenless Storage media endpoints, including byte ranges. A per-instance Spark metadata adapter resolves every page filename within the same revision; it does not modify global fetch or predownload the environment.
 - An emulator-tested rules switch denies public/private binary reads and staging writes while retaining authorized metadata reads. It is an operator policy proof, not an automated billing integration.
-- Browser tests cover actual Drill Rig rendering, ten Base Scene open/close cycles, public paging, canceled loading, modified binary rejection, and rendering all four existing web scenes under Strict Mode. Screenshots and the measured lifecycle receipt are written only under ignored `build/phase1/`.
+- Browser tests cover a neutral scene using local asset URLs without Firebase metadata, actual Drill Rig rendering, ten Base Scene open/close cycles, public paging, canceled loading, modified binary rejection, and rendering all four existing web scenes under Strict Mode. Screenshots and the measured lifecycle receipt are written only under ignored `build/phase1/`.
 
 ## Limits and handoff
 

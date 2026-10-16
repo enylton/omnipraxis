@@ -4,23 +4,16 @@ import { GltfModel } from '../runtime/assets/GltfModel';
 import { usePlayer } from '../runtime/player/PlayerContext';
 import { SplatModel } from '../runtime/spark/SplatModel';
 
-import type { SceneDescriptor } from '../contracts/scene';
-import type { ResolvedSceneAssets } from './assets/storageAssets';
+import type { ViewerScene } from './scene';
 import type { Group } from 'three';
 
 export type EnvironmentSceneProps = {
-  descriptor: SceneDescriptor;
-  assets: ResolvedSceneAssets;
+  scene: ViewerScene;
   onReady: () => void;
   onModelLoaded: (scene: Group) => void;
 };
 
-export const EnvironmentScene = ({
-  descriptor,
-  assets,
-  onReady,
-  onModelLoaded,
-}: EnvironmentSceneProps) => {
+export const EnvironmentScene = ({ scene, onReady, onModelLoaded }: EnvironmentSceneProps) => {
   const { spawn } = usePlayer();
   const [splatsReady, setSplatsReady] = useState(false);
   const [collidersReady, setCollidersReady] = useState(false);
@@ -35,21 +28,21 @@ export const EnvironmentScene = ({
 
   useEffect(() => {
     if (!splatsReady || !collidersReady) return;
-    spawn(descriptor.spawn.position, descriptor.spawn.yaw, descriptor.spawn.pitch);
+    spawn(scene.spawn.position, scene.spawn.yaw, scene.spawn.pitch);
     onReady();
-  }, [collidersReady, descriptor, onReady, spawn, splatsReady]);
+  }, [collidersReady, onReady, scene, spawn, splatsReady]);
 
   return (
     <group>
       <SplatModel
-        url={assets.splatsUrl}
-        format={descriptor.assets.splats.format}
-        paged={descriptor.assets.splats.format === 'rad'}
-        resolvePageUrl={assets.resolvePageUrl}
+        url={scene.assets.splatsUrl}
+        format={scene.assets.splatsFormat}
+        paged={scene.assets.splatsFormat === 'rad'}
+        resolvePageUrl={scene.assets.resolvePageUrl}
         onInitialized={handleSplatsReady}
       />
       <GltfModel
-        url={assets.collidersUrl}
+        url={scene.assets.collidersUrl}
         visible={false}
         physicality="fixed"
         onReady={handleCollidersReady}

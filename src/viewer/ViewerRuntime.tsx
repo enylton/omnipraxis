@@ -42,14 +42,14 @@ type ViewerRuntimeProps = EnvironmentSceneProps & {
   onSessionComplete?: (snapshot: SessionSnapshot) => void;
 };
 
-export const ViewerRuntime = ({ onError, onSessionComplete, ...scene }: ViewerRuntimeProps) => (
+export const ViewerRuntime = ({ onError, onSessionComplete, ...props }: ViewerRuntimeProps) => (
   <ViewerErrorBoundary onError={onError}>
     <RuntimeApp
-      sceneId={`${scene.descriptor.sceneId}:${scene.descriptor.revisionId}`}
+      sceneId={props.scene.sessionId}
       onSessionComplete={onSessionComplete}
       canvasRuntimes={<RendererLifetime />}
     >
-      <EnvironmentScene {...scene} />
+      <EnvironmentScene {...props} />
     </RuntimeApp>
   </ViewerErrorBoundary>
 );

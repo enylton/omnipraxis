@@ -2,11 +2,11 @@ import { deleteApp, initializeApp } from 'firebase/app';
 import { connectFirestoreEmulator, doc, getDoc, getFirestore, terminate } from 'firebase/firestore';
 import { connectStorageEmulator, getStorage } from 'firebase/storage';
 
-import { resolveStorageAssets } from '../../src/viewer/assets/storageAssets';
+import { resolveStorageAssets } from '../../src/adapters/firebase/sceneAssets';
 import '../../src/index.css';
 import './style.css';
 
-import type { SceneDescriptor } from '../../src/contracts/scene';
+type ViewerModule = typeof import('../../src/viewer/index');
 
 const projectId = 'demo-omnipraxis-phase1';
 const identity = document.querySelector<HTMLSelectElement>('#identity')!;
@@ -58,9 +58,8 @@ const open = async () => {
         : `organizations/phase1/scenes/${scene.value}/revisions/r1`;
     const snapshot = await getDoc(doc(db, path));
     if (!snapshot.exists()) throw new Error('Missing scene fixture. Run phase1:seed first.');
-    const descriptor = (
-      scene.value === 'circuit-breaker' ? snapshot.data().descriptor : snapshot.data()
-    ) as SceneDescriptor;
+    const descriptor =
+      scene.value === 'circuit-breaker' ? snapshot.data().descriptor : snapshot.data();
     const assets = await resolveStorageAssets(storage, descriptor, signal, 'http://127.0.0.1:9299');
     if (signal.aborted) {
       assets.dispose();
@@ -68,14 +67,14 @@ const open = async () => {
     }
     // This URL intentionally imports the built ESM artifact, not TSX source.
     const viewerUrl = '/build/viewer/viewer.js';
-    const { mountViewer } = await import(/* @vite-ignore */ viewerUrl);
+    const { mountViewer } = (await import(/* @vite-ignore */ viewerUrl)) as ViewerModule;
     if (signal.aborted) {
       assets.dispose();
       return;
     }
     active = mountViewer(host, {
-      descriptor,
-      assets,
+      scene: assets.scene,
+      releaseAssets: assets.dispose,
       onReady: () => {
         if (!signal.aborted) status.value = 'Ready';
       },

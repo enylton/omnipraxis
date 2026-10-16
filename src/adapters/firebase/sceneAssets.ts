@@ -2,13 +2,12 @@ import { getBlob, ref } from 'firebase/storage';
 
 import { parseSceneDescriptor, sceneRevisionPrefix } from '../../contracts/scene.ts';
 
-import type { SceneAsset, SceneDescriptor } from '../../contracts/scene';
+import type { SceneAsset } from '../../contracts/scene';
+import type { ViewerScene } from '../../viewer/scene';
 import type { FirebaseStorage } from 'firebase/storage';
 
 export type ResolvedSceneAssets = {
-  splatsUrl: string;
-  collidersUrl: string;
-  resolvePageUrl?: (filename: string) => string;
+  scene: ViewerScene;
   dispose: () => void;
 };
 
@@ -27,7 +26,7 @@ const verifyAsset = async (blob: Blob, asset: SceneAsset): Promise<Blob> => {
 
 export const resolveStorageAssets = async (
   storage: FirebaseStorage,
-  input: SceneDescriptor,
+  input: unknown,
   signal: AbortSignal,
   origin?: string,
 ): Promise<ResolvedSceneAssets> => {
@@ -56,18 +55,26 @@ export const resolveStorageAssets = async (
   let disposed = false;
 
   return {
-    splatsUrl,
-    collidersUrl,
-    resolvePageUrl:
-      descriptor.assets.splats.format === 'rad'
-        ? (filename) => {
-            // RAD headers are untrusted input. Only allow files in this revision's directory.
-            if (!/^[a-zA-Z0-9_-]+\.radc$/.test(filename)) {
-              throw new Error('Invalid RAD page filename.');
-            }
-            return storageMediaUrl(storage, `${prefix}${filename}`, origin);
-          }
-        : undefined,
+    scene: {
+      template: 'environment',
+      sessionId: `${descriptor.sceneId}:${descriptor.revisionId}`,
+      assets: {
+        splatsUrl,
+        splatsFormat: descriptor.assets.splats.format,
+        collidersUrl,
+        resolvePageUrl:
+          descriptor.assets.splats.format === 'rad'
+            ? (filename) => {
+                // RAD headers are untrusted input. Only allow files in this revision's directory.
+                if (!/^[a-zA-Z0-9_-]+\.radc$/.test(filename)) {
+                  throw new Error('Invalid RAD page filename.');
+                }
+                return storageMediaUrl(storage, `${prefix}${filename}`, origin);
+              }
+            : undefined,
+      },
+      spawn: descriptor.spawn,
+    },
     dispose() {
       if (disposed) return;
       disposed = true;
