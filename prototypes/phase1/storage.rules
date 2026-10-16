@@ -1,0 +1,43 @@
+rules_version = '2';
+
+// Phase 1 prototype only. No production configuration references this file.
+// Trusted fixtures create membership, publication, and upload-session records.
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Operator switch, tested by deploying a false variant in emulators.
+    function deliveryEnabled() { return true; }
+    function verified() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+    function permitted(orgId, sceneId, revisionId) {
+      let member = firestore.get(/databases/(default)/documents/organizations/$(orgId)/members/$(request.auth.uid)).data;
+      let scene = firestore.get(/databases/(default)/documents/organizations/$(orgId)/scenes/$(sceneId)).data;
+      return member.status == 'active' && (
+        member.role == 'admin' || (
+          scene.status == 'published' && scene.publishedRevisionId == revisionId && (
+            scene.accessMode == 'organization' || request.auth.uid in scene.assignedUserIds
+          )
+        )
+      );
+    }
+    function uploadAllowed(orgId, uploadId, assetName) {
+      let member = firestore.get(/databases/(default)/documents/organizations/$(orgId)/members/$(request.auth.uid)).data;
+      let upload = firestore.get(/databases/(default)/documents/organizations/$(orgId)/uploads/$(uploadId)).data;
+      return member.status == 'active' && member.role == 'admin' &&
+        upload.actor == request.auth.uid && upload.status == 'uploading' &&
+        upload.expiresAt > request.time &&
+        assetName in upload.slots && request.resource.size <= upload.slots[assetName];
+    }
+    match /organizations/{orgId}/scenes/{sceneId}/revisions/{revisionId}/{asset=**} {
+      allow get: if deliveryEnabled() && verified() && permitted(orgId, sceneId, revisionId);
+    }
+    match /organizations/{orgId}/staging/{uploadId}/{assetName} {
+      allow create: if deliveryEnabled() && verified() && uploadAllowed(orgId, uploadId, assetName);
+    }
+    match /public-scenes/{sceneId}/revisions/{revisionId}/{asset=**} {
+      allow get: if deliveryEnabled() &&
+        firestore.get(/databases/(default)/documents/publicScenes/$(sceneId)).data.status == 'published' &&
+        firestore.get(/databases/(default)/documents/publicScenes/$(sceneId)).data.publishedRevisionId == revisionId;
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "outDir": "./build/viewer/types",
+    "rootDir": "./src",
+    "incremental": false
+  },
+  "include": ["src/viewer/index.tsx"]
+}

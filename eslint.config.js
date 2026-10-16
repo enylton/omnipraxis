@@ -88,6 +88,11 @@ export default tseslint.config(
     },
   },
 
+  {
+    files: ['tests/**/*.ts', 'prototypes/**/*.ts'],
+    languageOptions: { globals: globals.node },
+  },
+
   // Prettier config MUST be last to override other formatting rules
   prettierConfig,
 );

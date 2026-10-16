@@ -29,6 +29,7 @@ type GltfModelProps = {
   interaction?: PlayerInteraction | null;
   interactionDistance?: number;
   blocksInteractions?: boolean;
+  onReady?: (scene: THREE.Group) => void;
 };
 
 const DEFAULT_INTERACTION_DISTANCE = 1.5;
@@ -138,8 +139,13 @@ export const GltfModel = ({
   interaction = null,
   interactionDistance = DEFAULT_INTERACTION_DISTANCE,
   blocksInteractions = true,
+  onReady,
 }: GltfModelProps) => {
   const { scene, animations } = useGLTF(url);
+
+  useEffect(() => {
+    onReady?.(scene);
+  }, [onReady, scene]);
   const {
     interactionTargetId,
     setInteractionTarget,

@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "types": ["node", "vite/client"],
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.phase1.tsbuildinfo"
+  },
+  "include": ["prototypes/phase1/**/*.ts", "tests/phase1/**/*.ts"]
+}

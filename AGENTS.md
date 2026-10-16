@@ -71,11 +71,12 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ## Commands
 
-- Use `pnpm` with Node `>=24`; `package.json` pins `packageManager` to `pnpm@11.3.0`.
+- Use `pnpm` with Node `>=24`; `package.json` pins `packageManager` to `pnpm@12.11.2`.
 - `pnpm dev` starts Vite and opens the browser; `pnpm preview` serves the built `dist` output.
 - `pnpm build` is the only configured typecheck path: it runs `tsc -b && vite build`.
 - `pnpm desktop:dev` starts the dedicated Tauri desktop app and its Vite renderer; `pnpm desktop:renderer:build` verifies the routing-free desktop frontend, and `pnpm desktop:build` creates the native executable without an installer bundle.
 - `pnpm lint` runs ESLint; there is no separate typecheck script.
+- `pnpm viewer:build` builds the isolated ESM viewer and declarations. `pnpm phase1:emulators`, `pnpm phase1:test`, and `pnpm phase1:test:browser` run the migration proof against dedicated demo emulators; `pnpm phase1:dev` serves its vanilla host. Keep this prototype separate from production Firebase deployment and stop after the authorized migration phase.
 - `pnpm format` runs Prettier over the repo; lockfiles and listed binary/media assets are ignored by `.prettierignore`.
 - After code edits, update `docs/architecture.md` whenever runtime boundaries, APIs, or data flow change, then run verification in this order: `pnpm format` -> `pnpm lint` -> `pnpm build`.
 - CI deploys `main` to GitHub Pages by checking out LFS assets, then running `pnpm install --frozen-lockfile`, `pnpm lint`, and `pnpm build` before uploading `dist`.

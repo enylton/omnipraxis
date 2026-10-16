@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Omnipraxis Phase 1 loading proof</title>
+  </head>
+  <body>
+    <section id="controls">
+      <strong>Phase 1 — emulator loading proof</strong>
+      <label
+        >Scene
+        <select id="scene">
+          <option>drill-rig</option>
+          <option>base</option>
+          <option>circuit-breaker</option>
+        </select></label
+      >
+      <label
+        >Identity
+        <select id="identity">
+          <option>assigned</option>
+          <option>unassigned</option>
+          <option>outsider</option>
+          <option>suspended</option>
+          <option>unverified</option>
+          <option>anonymous</option>
+        </select></label
+      >
+      <button id="open">Open</button><button id="close">Close</button>
+      <output id="status">Closed</output>
+    </section>
+    <main id="viewer"></main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

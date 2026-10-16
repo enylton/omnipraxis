@@ -1,0 +1,38 @@
+rules_version = '2';
+
+// Phase 1 read-only prototype. Trusted fixture tooling supplies all data.
+// members/{uid}: { role: 'admin'|'viewer', status: 'active'|'suspended' }
+// scenes/{sceneId}: { status, accessMode, assignedUserIds, publishedRevisionId }
+// revisions/{revisionId}: the versioned scene descriptor.
+// publicScenes/{sceneId}: published, public-safe scene descriptor and revision ID.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function verified() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+    function permitted(orgId, scene) {
+      let member = get(/databases/$(database)/documents/organizations/$(orgId)/members/$(request.auth.uid)).data;
+      return member.status == 'active' && (
+        member.role == 'admin' || (
+          scene.status == 'published' && (
+            scene.accessMode == 'organization' || request.auth.uid in scene.assignedUserIds
+          )
+        )
+      );
+    }
+    match /organizations/{orgId}/members/{uid} {
+      allow get: if verified() && request.auth.uid == uid;
+    }
+    match /organizations/{orgId}/scenes/{sceneId} {
+      allow get: if verified() && permitted(orgId, resource.data);
+      match /revisions/{revisionId} {
+        allow get: if verified() &&
+          permitted(orgId, get(/databases/$(database)/documents/organizations/$(orgId)/scenes/$(sceneId)).data) &&
+          get(/databases/$(database)/documents/organizations/$(orgId)/scenes/$(sceneId)).data.publishedRevisionId == revisionId;
+      }
+    }
+    match /publicScenes/{sceneId} {
+      allow get: if resource.data.status == 'published';
+    }
+  }
+}
