@@ -31,11 +31,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install backend dependencies
+        run: pnpm --dir functions install --frozen-lockfile
+
       - name: Lint
         run: pnpm lint
 
       - name: Build web app
         run: pnpm build
+
+      - name: Check backend and integration types
+        run: pnpm backend:build
 
       - name: Build desktop executable
         run: pnpm desktop:build

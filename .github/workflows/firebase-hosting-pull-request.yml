@@ -22,8 +22,10 @@ jobs:
           cache: true
           install: false
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --dir functions install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm build --base=/
+      - run: pnpm backend:build
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}

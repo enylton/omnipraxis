@@ -36,6 +36,7 @@ bower_components/
 dist/
 dist-ssr/
 build/
+functions/lib/
 coverage/
 .nyc_output
 output/

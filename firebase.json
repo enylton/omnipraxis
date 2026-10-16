@@ -1,11 +1,22 @@
 {
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "organizations",
+      "runtime": "nodejs22",
+      "predeploy": ["pnpm --dir functions build"]
+    }
+  ],
   "hosting": {
     "public": "dist",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
       {
         "source": "**",
@@ -15,12 +26,43 @@
   },
   "auth": {
     "providers": {
-      "anonymous": true,
+      "anonymous": false,
       "emailPassword": true,
       "googleSignIn": {
         "oAuthBrandDisplayName": "OmniPraxis",
         "supportEmail": "omnipraxis@efluxa.com"
       }
     }
+  },
+  "emulators": {
+    "auth": {
+      "host": "127.0.0.1",
+      "port": 9199
+    },
+    "functions": {
+      "host": "127.0.0.1",
+      "port": 5101
+    },
+    "firestore": {
+      "host": "127.0.0.1",
+      "port": 8280,
+      "websocketPort": 9151
+    },
+    "storage": {
+      "host": "127.0.0.1",
+      "port": 9399
+    },
+    "hub": {
+      "host": "127.0.0.1",
+      "port": 4401
+    },
+    "logging": {
+      "host": "127.0.0.1",
+      "port": 4501
+    },
+    "ui": {
+      "enabled": false
+    },
+    "singleProjectMode": true
   }
 }

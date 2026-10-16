@@ -8,7 +8,7 @@ import prettierConfig from 'eslint-config-prettier';
 
 export default tseslint.config(
   {
-    ignores: ['dist', 'build', 'coverage', 'node_modules'],
+    ignores: ['dist', 'build', 'coverage', '**/node_modules', 'functions/lib'],
   },
 
   {
@@ -89,7 +89,7 @@ export default tseslint.config(
   },
 
   {
-    files: ['tests/**/*.ts', 'prototypes/**/*.ts', 'scripts/**/*.ts'],
+    files: ['tests/**/*.ts', 'prototypes/**/*.ts', 'scripts/**/*.ts', 'functions/**/*.ts'],
     languageOptions: { globals: globals.node },
   },
 

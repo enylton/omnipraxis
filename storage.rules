@@ -1,0 +1,42 @@
+rules_version = '2';
+
+// Private revision reads use at most membership + scene cross-service reads.
+// No public IAM grants or tokenized URLs may bypass this policy.
+service firebase.storage {
+  match /b/{bucket}/o {
+    function deliveryEnabled() { return true; }
+    function verified() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+    function membership(orgId) {
+      return firestore.get(/databases/(default)/documents/organizations/$(orgId)/members/$(request.auth.uid)).data;
+    }
+    function active(orgId) {
+      return verified() && membership(orgId).uid == request.auth.uid &&
+        membership(orgId).status == 'active' && membership(orgId).role in ['admin', 'viewer'];
+    }
+    function permitted(orgId, sceneId, revisionId) {
+      let scene = firestore.get(/databases/(default)/documents/organizations/$(orgId)/scenes/$(sceneId)).data;
+      return active(orgId) && (membership(orgId).role == 'admin' ||
+        (scene.status == 'published' && scene.publishedRevisionId == revisionId &&
+          (scene.accessMode == 'organization' ||
+            (scene.accessMode == 'assigned' && request.auth.uid in scene.assignedUserIds))));
+    }
+    match /organizations/{orgId}/scenes/{sceneId}/revisions/{revisionId}/{asset=**} {
+      allow get: if deliveryEnabled() && verified() && permitted(orgId, sceneId, revisionId);
+    }
+    match /organizations/{orgId}/staging/{uploadId}/{assetName} {
+      allow get: if deliveryEnabled() && active(orgId) && membership(orgId).role == 'admin';
+      // Writes stay denied until Phase 4 proves a controlled upload path without
+      // generated/injected download tokens that bypass authorization/suspension.
+    }
+    match /public-scenes/{sceneId}/revisions/{revisionId}/{asset=**} {
+      allow get: if deliveryEnabled() &&
+        firestore.get(/databases/(default)/documents/publicScenes/$(sceneId)).data.status == 'published' &&
+        firestore.get(/databases/(default)/documents/publicScenes/$(sceneId)).data.publishedRevisionId == revisionId;
+    }
+    match /{asset=**} {
+      allow read, write: if false;
+    }
+  }
+}

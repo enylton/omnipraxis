@@ -78,14 +78,15 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 - `pnpm lint` runs ESLint; there is no separate typecheck script.
 - `pnpm viewer:build` builds the isolated ESM viewer and declarations. `pnpm phase1:emulators`, `pnpm phase1:test`, and `pnpm phase1:test:browser` run the migration proof against dedicated demo emulators; `pnpm phase1:dev` serves its vanilla host. Keep this prototype separate from production Firebase deployment and stop after the authorized migration phase.
 - `pnpm viewer:check` runs lint, web/viewer/desktop renderer builds, and the demo emulator/browser proof with managed service startup/shutdown, then records `build/phase1/viewer-check.json`. It requires free test ports and does not replace manual scene/input/event-export acceptance. See `docs/upstream-viewer-updates.md` before integrating upstream changes.
+- Phase 2 uses the separately locked `functions/` backend: install it with `pnpm --dir functions install --frozen-lockfile`. `pnpm backend:build` compiles backend/integration types; `pnpm backend:check` manages the dedicated Auth/Functions/Firestore/Storage demo emulators and integration tests. See `functions/README.md`. Do not deploy or start Phase 3 without authorization.
 - `pnpm format` runs Prettier over the repo; lockfiles and listed binary/media assets are ignored by `.prettierignore`.
 - After code edits, update `docs/architecture.md` whenever runtime boundaries, APIs, or data flow change, then run verification in this order: `pnpm format` -> `pnpm lint` -> `pnpm build`.
-- CI deploys `main` to GitHub Pages by checking out LFS assets, then running `pnpm install --frozen-lockfile`, `pnpm lint`, and `pnpm build` before uploading `dist`.
+- CI installs frozen frontend and backend dependencies, then lints, builds the web app and checks Phase 2 types. Existing Hosting/Pages workflows still deploy only frontend artifacts; they do not deploy rules, Auth or Functions.
 - The manual Windows workflow builds the unsigned Tauri executable on `windows-latest` and uploads an artifact containing `Omnipraxis/Omnipraxis.exe`, `Omnipraxis/splats.spz`, and `Omnipraxis/colliders.glb`.
 
 ## Project Shape
 
-- This is a single package, not a package monorepo; web and desktop Vite entries share application sources, and `pnpm-workspace.yaml` only allowlists the `unrs-resolver` install build script.
+- Web and desktop share one frontend package. `functions/` is an independent backend package with its own lockfile/build-script policy; the root is not a package monorepo. Keep Admin/Functions SDKs outside viewer dependencies. The frontend `pnpm-workspace.yaml` only permits the `unrs-resolver` install build script and explicitly denies other listed scripts.
 - `docs/architecture.md` documents the platform/runtime boundaries and should stay in sync with meaningful architecture changes.
 - Web entry flow is `src/main.tsx` -> `src/SceneRouter.tsx` -> `src/App.tsx` -> `src/RuntimeApp.tsx`; `SceneRouter` owns pathname selection and renders the DOM scene index/not-found pages outside R3F, `App` injects the web-only `ConvaiRuntime`, and `RuntimeApp` owns the shared R3F/physics/player shell plus the active scene.
 - Desktop entry flow is `desktop/src/main.tsx` -> `DesktopRoot` -> `RuntimeApp` -> `BaseScene`; it intentionally excludes scene routing and Convai.

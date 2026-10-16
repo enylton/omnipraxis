@@ -1,0 +1,7 @@
+{
+  "extends": "./tsconfig.node.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.backend-tests.tsbuildinfo"
+  },
+  "include": ["functions/test/**/*.ts"]
+}

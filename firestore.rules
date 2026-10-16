@@ -1,18 +1,78 @@
-rules_version='2'
+rules_version = '2';
 
+// Phase 2 policy; all metadata mutations use authorized callables, not clients.
+// organizations: name, activeAdminCount, timestamps (trusted operator/backend).
+// members: uid, email/displayName (admin/owner-only), role, status, joinedAt.
+// status is active/suspended/removed; removed is a reactivation tombstone.
+// scenes: title, status, accessMode, assignedUserIds (<=100), publishedRevisionId,
+// version, timestamps. Revisions hold validated descriptors (backend-owned).
+// invitations: email, role, tokenHash (never plaintext), status, expiry/timestamps.
+// uploads/audit: backend-owned sessions and secret-free audit entries.
+// publicScenes: explicitly anonymous, public-safe published demonstrations.
 service cloud.firestore {
   match /databases/{database}/documents {
+    function verified() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+    function organizationExists(orgId) {
+      return exists(/databases/$(database)/documents/organizations/$(orgId));
+    }
+    function membership(orgId) {
+      return get(/databases/$(database)/documents/organizations/$(orgId)/members/$(request.auth.uid)).data;
+    }
+    function active(orgId) {
+      return verified() && organizationExists(orgId) &&
+        membership(orgId).uid == request.auth.uid && membership(orgId).status == 'active' &&
+        membership(orgId).role in ['admin', 'viewer'];
+    }
+    function admin(orgId) {
+      return active(orgId) && membership(orgId).role == 'admin';
+    }
+    function permitted(orgId, scene) {
+      return active(orgId) && (membership(orgId).role == 'admin' ||
+        (scene.status == 'published' && (scene.accessMode == 'organization' ||
+          (scene.accessMode == 'assigned' && request.auth.uid in scene.assignedUserIds))));
+    }
+    function bounded() {
+      return request.query.limit != null && request.query.limit <= 50;
+    }
+    match /organizations/{orgId} {
+      allow get: if active(orgId);
+      match /members/{uid} {
+        // Organization admins explicitly manage contact data; never public.
+        allow get: if admin(orgId) || (verified() && organizationExists(orgId) && request.auth.uid == uid);
+        allow list: if admin(orgId) && bounded();
+      }
+      match /scenes/{sceneId} {
+        allow get: if permitted(orgId, resource.data);
+        allow list: if permitted(orgId, resource.data) && bounded();
+        match /revisions/{revisionId} {
+          function scene() {
+            return get(/databases/$(database)/documents/organizations/$(orgId)/scenes/$(sceneId)).data;
+          }
+          allow get: if admin(orgId) || (permitted(orgId, scene()) && scene().publishedRevisionId == revisionId);
+          allow list: if admin(orgId) && bounded();
+        }
+      }
+      match /invitations/{invitationId} {
+        allow get: if admin(orgId);
+        allow list: if admin(orgId) && bounded();
+      }
+      match /uploads/{uploadId} {
+        allow get: if admin(orgId);
+        allow list: if admin(orgId) && bounded();
+      }
+      match /audit/{eventId} {
+        allow get: if admin(orgId);
+        allow list: if admin(orgId) && bounded();
+      }
+    }
+    match /publicScenes/{sceneId} {
+      allow get: if resource.data.status == 'published';
+      allow list: if resource.data.status == 'published' && bounded();
+    }
     match /{document=**} {
-      // This rule allows anyone with your database reference to view, edit,
-      // and delete all data in your database. It is useful for getting
-      // started, but it is configured to expire after 30 days because it
-      // leaves your app open to attackers. At that time, all client
-      // requests to your database will be denied.
-      //
-      // Make sure to write security rules for your app before that time, or
-      // else all client requests to your database will be denied until you
-      // update your rules.
-      allow read, write: if request.time < timestamp.date(2026, 11, 12);
+      allow read, write: if false;
     }
   }
 }
