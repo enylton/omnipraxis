@@ -36,6 +36,6 @@ Firebase `getBlob` does not expose an AbortSignal: canceling prevents stale moun
 
 The host owns Firebase clients for its lifetime. Each viewer owns its canvas, model cache entries, object URLs, input listeners, and rendering resources. GPU teardown is exercised through Spark and Three disposal/context loss; the browser counters are not a measurement of dedicated VRAM. R3F retains one last-rendered loop state; the lifecycle test allows that single detached tree and rejects per-session growth. The host loads the built `viewer.css`; it no longer imports `src/index.css`. Browser checks also mount SPZ/RAD viewers in a plain HTML host that loads only the built viewer files and scene assets.
 
-The verification receipt is recorded in `docs/phase1-loading-proof.md`. Phase 2 has not started.
+The verification receipt is recorded in `docs/migration-checkpoint.md`. Phase 2 has not started.
 
 I've set up prototype Security Rules to keep the data in Firestore safe. They are designed to be secure for the fixture model by denying client writes, limiting private metadata to verified permitted members, and exposing only published public demonstration metadata. However, you should review and verify them before broadly sharing your app. If you'd like, I can help you harden these rules.
