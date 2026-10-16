@@ -1,0 +1,56 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "cli": { "analytics": false, "cache": { "path": "build/angular-cache" } },
+  "projects": {
+    "portal": {
+      "projectType": "application",
+      "root": "portal",
+      "sourceRoot": "portal/src",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "browser": "portal/src/main.ts",
+            "index": "portal/src/index.html",
+            "tsConfig": "tsconfig.portal.json",
+            "outputPath": "build/portal",
+            "styles": ["portal/src/styles.css"],
+            "assets": [
+              { "glob": "*.*", "input": "build/viewer", "output": "viewer" },
+              { "glob": "*.*", "input": "build/public-viewer", "output": "public-viewer" },
+              { "glob": "**/*", "input": "public/scenes/base", "output": "scenes/base" },
+              {
+                "glob": "**/*",
+                "input": "public/scenes/circuit-breaker",
+                "output": "scenes/circuit-breaker"
+              },
+              {
+                "glob": "**/*",
+                "input": "public/scenes/pressure-gauge",
+                "output": "scenes/pressure-gauge"
+              },
+              { "glob": "**/*", "input": "public/assets", "output": "assets" }
+            ]
+          },
+          "configurations": {
+            "production": {
+              "outputHashing": "all",
+              "budgets": [{ "type": "initial", "maximumWarning": "1MB", "maximumError": "2MB" }]
+            },
+            "development": { "optimization": false, "sourceMap": true }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "options": {
+            "host": "127.0.0.1",
+            "port": 4200,
+            "buildTarget": "portal:build:development"
+          }
+        }
+      }
+    }
+  }
+}

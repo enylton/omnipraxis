@@ -29,6 +29,7 @@ if (process.env.GCLOUD_PROJECT !== project)
 const app = adminApp({ projectId: project, storageBucket: bucket }, 'phase2-tests');
 export const db = adminFirestore(app);
 export const auth = adminAuth(app);
+export const assetBucket = adminStorage(app).bucket();
 export const service = organizationService(db, auth);
 export const identities = [
   'admin-a',
@@ -43,12 +44,21 @@ export const email = (uid: string) => `${uid}@example.test`;
 
 export async function initialize() {
   for (const uid of identities) {
-    await auth.createUser({
-      uid,
+    const user = {
       email: email(uid),
       password,
       emailVerified: uid !== 'unverified',
-    });
+    };
+    try {
+      await auth.createUser({ uid, ...user });
+    } catch (error) {
+      if (
+        (error as { code?: string }).code !== 'auth/uid-already-exists' &&
+        (error as { code?: string }).code !== 'auth/email-already-exists'
+      )
+        throw error;
+      await auth.updateUser(uid, user);
+    }
   }
   return initializeTestEnvironment({
     projectId: project,

@@ -13,7 +13,8 @@
   },
   "dependencies": {
     "firebase-admin": "14.5.0",
-    "firebase-functions": "7.4.0"
+    "firebase-functions": "7.4.0",
+    "gltf-validator": "2.0.0-dev.3.10"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

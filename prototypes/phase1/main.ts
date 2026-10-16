@@ -56,7 +56,7 @@ const open = async () => {
         ? `publicScenes/${scene.value}`
         : `organizations/phase1/scenes/${scene.value}/revisions/r1`;
     const snapshot = await getDoc(doc(db, path));
-    if (!snapshot.exists()) throw new Error('Missing scene fixture. Run phase1:seed first.');
+    if (!snapshot.exists()) throw new Error('Missing scene fixture. Run pnpm viewer:seed first.');
     const descriptor =
       scene.value === 'circuit-breaker' ? snapshot.data().descriptor : snapshot.data();
     const assets = await resolveStorageAssets(storage, descriptor, signal, 'http://127.0.0.1:9299');

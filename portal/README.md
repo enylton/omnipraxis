@@ -22,6 +22,8 @@ pnpm portal:dev
 
 Open <http://127.0.0.1:4200>. Seeding resets local demo metadata and uploads the checked-in Drill Rig to the emulator; never use it for retained test data. The helper uses fixed local endpoints, with no live project selection. Emulator data is discarded on restart unless exported.
 
+`pnpm portal:dev` builds the viewer artifacts and starts Angular. Seed a fresh emulator session once, then omit `portal:seed` when restarting only the frontend. The separate `viewer:dev`, `viewer:emulators`, `viewer:seed`, `viewer:test` and `viewer:test:browser` commands support the isolated viewer proof and its regression checks; they do not run the current portal. The application has no phase selector.
+
 All demo accounts use test-only password `Portal-demo-only-123!`:
 
 | Email                     | Access                                           |
@@ -31,7 +33,7 @@ All demo accounts use test-only password `Portal-demo-only-123!`:
 | `outsider@example.test`   | No organization until invited                    |
 | `unverified@example.test` | Verification required; no organization           |
 
-Google opens the Auth emulator's simulated provider widget. Verification/reset links appear in the emulator terminal. Administrator invitation issuance, member management and publishing UI belong to the next phase. Tests create invitations through the backend service and exercise actual callable acceptance.
+Google opens the Auth emulator's simulated provider widget. Verification/reset links appear in the emulator terminal. Sign in as the demo administrator and open `/organizations/alpha/admin` to manage invitations/members, create scenes, upload prepared environments, preview and publish immutable revisions, replace/rollback or archive. No live upload/deployment is enabled.
 
 ## Routes and verification
 
@@ -51,7 +53,17 @@ The build outputs `build/portal/browser`; the local preview supports SPA refresh
 
 Private viewers wait for server-confirmed membership and scene metadata, verify revision identity and asset checksums, then mount one session. Navigation, logout, access removal and revision changes dispose it. Revisions require explicit **Reopen scene**. An in-flight Firebase `getBlob` may finish transferring after cancellation but cannot mount a stale session. Downloaded bytes cannot be recalled.
 
-The operator/backend-owned `publicSettings/delivery` document contains **only** `{ downloadsEnabled: boolean }`. Missing/unreadable/malformed status fails closed; resumption never automatically reopens a scene. It is a public-safe availability projection, not binary authorization. Operators must coordinate it with Storage's `deliveryEnabled` enforcement and future upload checks. No live rule/document was changed.
+The operator/backend-owned `publicSettings/delivery` document contains **only** `{ downloadsEnabled: boolean }`. Missing/unreadable/malformed status fails closed; resumption never automatically reopens a scene. It is a public-safe availability projection, not binary authorization. Upload callables also require this flag. Operators must coordinate it with Storage's `deliveryEnabled` enforcement. No live rule/document was changed.
+
+## Prepared environment administration
+
+Create/select a scene, set organization-wide or explicit member access, then choose gzip SPZ v2/v3, a static self-contained collider GLB and a noninterlaced 8-bit RGB/RGBA PNG. Caps are 100 MiB/100 MiB/5 MiB; PNG dimensions up to 2048×2048, SPZ up to 3 million points/128 MiB decoded, and collider up to one million instanced triangles. External resources/extensions/animations/skins/textures are rejected for colliders. Spawn coordinates use meters and angles use radians.
+
+Start transfer, pause after an acknowledged chunk, then resume with the original files. Network failures leave acknowledged offsets intact. Navigation pauses transfer; select the session and reselect identical files to resume, or cancel it. Automatic browser-restart recovery is not promised. A lost server operation may retain its lease for up to 20 minutes before retry/cleanup; the UI reports the running-operation error.
+
+After transfer, explicitly validate. Validation errors leave the current published scene unchanged. Cancel malformed sessions to release reserved quota; transient/expired validation may be retried. Ready revisions offer **Preview revision** and **Publish / rollback**. Preview loads the actual immutable files, not staging. Publishing/rolling back closes active viewer sessions with an explicit reopen action. Archiving blocks viewers and preserves revisions. Concurrent edits/publication require refreshing before retry.
+
+Only the server writes Storage, through authenticated 1 MiB chunk commands. No Firebase upload/download tokens or signed/bearer upload URLs are handed to the browser. This costs more backend requests than direct uploads; measure actual cloud usage before release. The managed-asset ledger reserves staging plus revision bytes, permits one active upload per admin/two per organization, and retains reservation until cleanup succeeds. See [backend operations](../functions/README.md) for cleanup, quotas and live-release gates.
 
 The public adapter temporarily bundles the three original scripted scenes separately from the environment-only viewer API. The portal copies only their public assets/shared props; Drill Rig is excluded from its build and loaded from authorized emulator Storage. Phase 5 will inject controlled cloud URLs into the public templates. Until cutover, the repository/history, legacy application and existing deployments retain previous delivery behavior. Production confidentiality and complete cost suspension are not certified.
 

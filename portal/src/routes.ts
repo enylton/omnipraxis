@@ -49,7 +49,12 @@ export const routes: Routes = [
   {
     path: 'organizations/:orgId/admin',
     canActivate: [verified, administrator],
-    loadComponent: () => import('./catalog.pages').then((m) => m.AdminPage),
+    loadComponent: () => import('./admin.page').then((m) => m.AdminPage),
+  },
+  {
+    path: 'organizations/:orgId/admin/scenes/:sceneId/revisions/:preview',
+    canActivate: [verified, administrator],
+    loadComponent: viewer,
   },
   {
     path: 'drill-rig',

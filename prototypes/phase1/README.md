@@ -11,12 +11,12 @@ Use Node 24, the repository-pinned pnpm, Java 21 or newer, fetched Git LFS asset
 For the complete automated compatibility check, run `pnpm viewer:check` with test ports free. It builds the required entries, manages dedicated demo emulator startup/shutdown, runs the tests, and records `build/phase1/viewer-check.json`. See `docs/upstream-viewer-updates.md` for the review and manual acceptance requirements. The following commands are for interactive prototype development instead.
 
 1. Install dependencies with `pnpm install --frozen-lockfile`.
-2. Start the dedicated emulators: `pnpm phase1:emulators`.
+2. Start the dedicated emulators: `pnpm viewer:emulators`.
 3. In another terminal, build the portable viewer: `pnpm viewer:build`.
-4. Run `pnpm phase1:test`. This verifies the built public API artifact, compiles the prototype rules, seeds real local SPZ/GLB/RAD/RADC assets, and runs the contract/access tests.
-5. Run `pnpm phase1:dev` and open the displayed loopback URL. Alternatively, keep ports 4174/4175 free and run `pnpm phase1:test:browser`; it starts/stops its own Vite servers and refuses already-running ones.
+4. Run `pnpm viewer:test`. This verifies the built public API artifact, compiles the prototype rules, seeds real local SPZ/GLB/RAD/RADC assets, and runs the contract/access tests.
+5. Run `pnpm viewer:dev` and open the displayed loopback URL. Alternatively, keep ports 4174/4175 free and run `pnpm viewer:test:browser`; it starts/stops its own Vite servers and refuses already-running ones.
 
-`pnpm phase1:seed` resets and seeds the fixtures without running tests. The browser configuration uses the installed Edge channel; it does not download a browser. Rebuild the viewer after changes. Both `phase1:test` and browser tests now require its JavaScript, CSS, manifest, and public declarations. See `docs/viewer-api.md` for the artifact contract.
+`pnpm viewer:seed` resets and seeds the fixtures without running tests. The browser configuration uses the installed Edge channel; it does not download a browser. Rebuild the viewer after changes. Both `viewer:test` and browser tests now require its JavaScript, CSS, manifest, and public declarations. See `docs/viewer-api.md` for the artifact contract. Command names describe the viewer harness; historical fixture paths and the isolated demo project ID are unchanged.
 
 ## What this proves
 

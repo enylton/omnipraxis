@@ -16,7 +16,9 @@ a {
   text-underline-offset: 0.2em;
 }
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
 }
 button,
@@ -165,6 +167,59 @@ input {
   border-radius: 5px;
   background: white;
   padding: 0.7rem;
+}
+select,
+textarea {
+  width: 100%;
+  font: inherit;
+  padding: 0.65rem;
+  border: 1px solid #9cac9e;
+  border-radius: 5px;
+  background: white;
+}
+.admin-page {
+  max-width: 1200px;
+}
+.admin-page .panel {
+  background: #fff;
+  border: 1px solid #cbd8cc;
+}
+.admin-nav,
+.admin-rows {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin: 1rem 0;
+}
+.admin-row {
+  display: flex;
+  align-items: end;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1rem 0;
+  border-bottom: 1px solid #d7e0d8;
+}
+.admin-row span {
+  flex: 1 1 200px;
+  overflow-wrap: anywhere;
+}
+.admin-row label {
+  flex: 1 1 170px;
+}
+.admin-row small {
+  display: block;
+}
+.spawn-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+.admin-page input[type='file'] {
+  margin-bottom: 1rem;
+}
+.admin-page progress {
+  width: 100%;
 }
 .actions {
   display: flex;

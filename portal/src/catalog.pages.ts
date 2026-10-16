@@ -244,19 +244,6 @@ export class DrillEntryPage {
   }
 }
 @Component({
-  selector: 'portal-admin',
-  imports: [RouterLink],
-  template: `<section class="panel narrow">
-    <h1>Administration</h1>
-    <p>
-      Your account has administrator access. Catalog publishing and membership management will be
-      available in the next release.
-    </p>
-    <a routerLink="/organizations">Back to organizations</a>
-  </section>`,
-})
-export class AdminPage {}
-@Component({
   selector: 'portal-not-found',
   imports: [RouterLink],
   template: `<section class="panel narrow">

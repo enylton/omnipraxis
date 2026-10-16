@@ -45,6 +45,34 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "order": "ASCENDING",
+          "fieldPath": "cleanupPending"
+        },
+        {
+          "order": "ASCENDING",
+          "fieldPath": "expiresAt"
+        }
+      ],
+      "collectionGroup": "uploads"
+    },
+    {
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "order": "ASCENDING",
+          "fieldPath": "cleanupPending"
+        },
+        {
+          "order": "ASCENDING",
+          "fieldPath": "expiresAt"
+        }
+      ],
+      "collectionGroup": "uploads"
     }
   ],
   "fieldOverrides": []

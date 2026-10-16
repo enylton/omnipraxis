@@ -16,7 +16,7 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: 'pnpm phase1:dev',
+      command: 'pnpm viewer:dev',
       cwd: '../..',
       url: 'http://127.0.0.1:4174',
       reuseExistingServer: false,

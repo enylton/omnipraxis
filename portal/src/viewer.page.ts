@@ -38,7 +38,15 @@ function viewerStyles(href: string) {
   imports: [RouterLink],
   template: `<section class="scene-page">
     <div class="scene-toolbar">
-      <a [routerLink]="demo() ? ['/'] : ['/organizations', orgId(), 'scenes']">← Catalog</a
+      <a
+        [routerLink]="
+          preview()
+            ? ['/organizations', orgId(), 'admin']
+            : demo()
+              ? ['/']
+              : ['/organizations', orgId(), 'scenes']
+        "
+        >← Catalog</a
       ><span>{{ demo() || sceneId() }}</span
       ><a routerLink="/organizations">Switch organization</a>
     </div>
@@ -71,6 +79,7 @@ export class ViewerPage {
   readonly demo = input<PublicDemo>();
   readonly orgId = input<string>();
   readonly sceneId = input<string>();
+  readonly preview = input<string>();
   private readonly host = viewChild<ElementRef<HTMLElement>>('host');
   private readonly attempt = signal(0);
   readonly state = signal<'loading' | 'viewing' | 'closed'>('loading');
@@ -82,11 +91,12 @@ export class ViewerPage {
       const demo = this.demo();
       const orgId = this.orgId();
       const sceneId = this.sceneId();
+      const preview = this.preview();
       const uid = this.session.uid();
       const verified = this.session.verified();
       this.attempt();
       if (!host) return;
-      const stop = untracked(() => this.open(host, demo, orgId, sceneId, uid, verified));
+      const stop = untracked(() => this.open(host, demo, orgId, sceneId, uid, verified, preview));
       this.stop = stop;
       cleanup(() => stop());
     });
@@ -107,6 +117,7 @@ export class ViewerPage {
     sceneId: string | undefined,
     uid: string | null,
     verified: boolean,
+    preview?: string,
   ) {
     const controller = new AbortController();
     let closed = false;
@@ -168,7 +179,7 @@ export class ViewerPage {
             member['uid'] !== uid ||
             member['status'] !== 'active' ||
             !['viewer', 'admin'].includes(member['role']) ||
-            scene['status'] !== 'published' ||
+            (preview ? member['role'] !== 'admin' : scene['status'] !== 'published') ||
             !(
               member['role'] === 'admin' ||
               scene['accessMode'] === 'organization' ||
@@ -179,17 +190,17 @@ export class ViewerPage {
             resolve();
             return;
           }
-          if (typeof scene['publishedRevisionId'] !== 'string') {
+          if (!preview && typeof scene['publishedRevisionId'] !== 'string') {
             failed();
             resolve();
             return;
           }
-          if (revision && revision !== scene['publishedRevisionId']) {
+          if (!preview && revision && revision !== scene['publishedRevisionId']) {
             stop('This scene has changed. Reopen it to load the latest version.');
             resolve();
             return;
           }
-          revision = scene['publishedRevisionId'];
+          revision = preview ?? scene['publishedRevisionId'];
           if (!gateResolved) {
             gateResolved = true;
             resolve();
@@ -236,6 +247,8 @@ export class ViewerPage {
       if (closed || !revision) return;
       const snapshot = await getDocFromServer(doc(sceneRef, 'revisions', revision));
       if (closed) return;
+      if (preview && snapshot.get('status') !== 'ready')
+        throw new Error('Revision is not ready for preview.');
       const descriptor = parseSceneDescriptor(snapshot.get('descriptor'));
       if (
         descriptor.scope.kind !== 'organization' ||

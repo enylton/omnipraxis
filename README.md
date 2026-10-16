@@ -63,7 +63,7 @@ Start the development server:
 pnpm dev
 ```
 
-The Angular migration portal runs separately with `pnpm portal:dev` against local demo emulators. See [the portal guide](portal/README.md) for setup, demo accounts and verification. Production entry/deployment cutover is pending.
+Start the Angular portal with `pnpm portal:dev` after starting the local demo emulators. See [the portal guide](portal/README.md) for setup, demo accounts and verification. `pnpm dev` and `pnpm run dev` still start the original Vite application; production entry/deployment cutover is pending.
 
 ## Scenes
 
