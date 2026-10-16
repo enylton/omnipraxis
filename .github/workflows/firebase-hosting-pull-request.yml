@@ -26,6 +26,7 @@ jobs:
       - run: pnpm lint
       - run: pnpm build --base=/
       - run: pnpm backend:build
+      - run: pnpm portal:build
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}

@@ -63,6 +63,8 @@ Start the development server:
 pnpm dev
 ```
 
+The Angular migration portal runs separately with `pnpm portal:dev` against local demo emulators. See [the portal guide](portal/README.md) for setup, demo accounts and verification. Production entry/deployment cutover is pending.
+
 ## Scenes
 
 The root application route displays the available scene index. The current routes are:

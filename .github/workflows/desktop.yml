@@ -43,6 +43,9 @@ jobs:
       - name: Check backend and integration types
         run: pnpm backend:build
 
+      - name: Check Angular portal build
+        run: pnpm portal:build
+
       - name: Build desktop executable
         run: pnpm desktop:build
 

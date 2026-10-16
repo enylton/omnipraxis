@@ -89,7 +89,15 @@ export default tseslint.config(
   },
 
   {
-    files: ['tests/**/*.ts', 'prototypes/**/*.ts', 'scripts/**/*.ts', 'functions/**/*.ts'],
+    files: [
+      'tests/**/*.ts',
+      'prototypes/**/*.ts',
+      'scripts/**/*.ts',
+      'functions/**/*.ts',
+      'portal/tests/**/*.ts',
+      'portal/serve.ts',
+      'portal/playwright.config.ts',
+    ],
     languageOptions: { globals: globals.node },
   },
 

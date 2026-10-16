@@ -9,6 +9,7 @@ rules_version = '2';
 // invitations: email, role, tokenHash (never plaintext), status, expiry/timestamps.
 // uploads/audit: backend-owned sessions and secret-free audit entries.
 // publicScenes: explicitly anonymous, public-safe published demonstrations.
+// publicSettings/delivery: only downloadsEnabled (boolean), no private fields.
 service cloud.firestore {
   match /databases/{database}/documents {
     function verified() {
@@ -70,6 +71,11 @@ service cloud.firestore {
     match /publicScenes/{sceneId} {
       allow get: if resource.data.status == 'published';
       allow list: if resource.data.status == 'published' && bounded();
+    }
+    match /publicSettings/delivery {
+      // Anonymous demonstrations need this safe projection; clients cannot write it.
+      allow get: if resource.data.keys().hasOnly(['downloadsEnabled']) &&
+        resource.data.downloadsEnabled is bool;
     }
     match /{document=**} {
       allow read, write: if false;

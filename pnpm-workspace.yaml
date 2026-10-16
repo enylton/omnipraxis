@@ -1,5 +1,19 @@
 allowBuilds:
+  esbuild: true
+  '@parcel/watcher': false
+  lmdb: false
+  msgpackr-extract: false
   unrs-resolver: true
   '@firebase/util': false
   protobufjs: false
   re2: false
+overrides:
+  # Angular's compiler imports the range-mapping API introduced in 1.6.
+  '@angular/compiler-cli>@jridgewell/sourcemap-codec': 1.6.0
+minimumReleaseAgeExclude:
+  - '@angular-devkit/architect@0.2202.3'
+  - '@angular-devkit/core@22.2.3'
+  - '@angular-devkit/schematics@22.2.3'
+  - '@angular/build@22.2.3'
+  - '@angular/cli@22.2.3'
+  - '@schematics/angular@22.2.3'

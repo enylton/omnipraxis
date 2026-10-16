@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.viewer.json",
+  "compilerOptions": { "outDir": "./build/public-viewer/types" },
+  "include": ["src/viewer/public-api.ts"]
+}

@@ -1,6 +1,6 @@
 # Organization backend (emulator-only verification)
 
-This implements the backend policy and organization lifecycle before the Angular portal. No live provider/rules/functions deployment, database/bucket provisioning, first live administrator selection, or production bootstrap is performed. Phase 3 has not started. Keep the Phase 1 viewer proof separate.
+This implements the backend policy and organization lifecycle used by [the Angular portal](../portal/README.md). No live provider/rules/functions deployment, database/bucket provisioning, first live administrator selection, or production bootstrap is performed. Keep the Phase 1 viewer proof separate.
 
 ## Run
 
@@ -29,7 +29,7 @@ All six callables require a verified Firebase identity, check the current Auth u
 | `setSceneAccess`      | `orgId, sceneId, accessMode, assignedUserIds, expectedVersion` | Admin-only; unique active same-org UIDs, at most 100; published/draft scene version checked before transactional assignment update. Scene creation/publication is Phase 4. |
 | `listMyOrganizations` | `{ after? }`                                                   | Up to 25 active own memberships, safe organization summaries and an independent next cursor. No broad client collection-group discovery.                                   |
 
-Never log invitation tokens or put them in audit entries. The future portal should construct a same-origin invitation fragment, capture/scrub it before other navigation/analytics, and let admins share it themselves. No email delivery service was added.
+Never log invitation tokens or put them in audit entries. The portal accepts a same-origin invitation fragment and captures/scrubs it before routing; administrator issuance/sharing UI remains the next phase. No email delivery service was added.
 
 An invitation cannot reactivate a suspended member. Removed members require an invitation issued after removal; reactivation clears any stale assignments. The issuer must still be an active administrator when a pending invitation is accepted. A fresh invitation does not silently change an existing member's role. Existing accepted-token retries never reactivate a subsequently removed member. Active-admin count is maintained under the organization transaction lock, so concurrent demotions cannot remove the last active admin. All writers of memberships must preserve this invariant.
 
@@ -65,6 +65,6 @@ Before enabling Phase 4 uploads, prove a controlled resumable upload path and im
 
 Tests exercise real emulator password verification/reset action codes, mocked Google credentials, same-UID password setup/sign-in, the callable HTTP boundary, two organizations, token expiry/revocation/replay, last-admin races, assignment changes, exact catalog pagination, still-valid-token revocation, Firestore/Storage access matrices, client-write attacks and suspension. Invalid credentials must be denied without writes; the Auth emulator is not evidence of real token-signature/OAuth validation. See [Auth emulator limitations](https://firebase.google.com/docs/emulator-suite/connect_auth).
 
-The initial `linkWithCredential` password-addition test hit `auth/email-already-in-use`; inspection of the installed emulator's signup path showed its duplicate-email check precedes the link-token path. Password setup now uses the authenticated SDK `updatePassword` on the signed-in, verified user, preserving UID and testing both providers. This is not an email-based account merge. Real Google popups, provider configuration, authorized domains, email templates/delivery, account-collision recovery UI, IAM/CORS and live cross-service rules remain pending live authorization/Phase 3 UI.
+The initial `linkWithCredential` password-addition test hit `auth/email-already-in-use`; inspection of the installed emulator's signup path showed its duplicate-email check precedes the link-token path. Password setup now uses the authenticated SDK `updatePassword` on the signed-in, verified user, preserving UID and testing both providers. This is not an email-based account merge. The portal now provides verification/reset/linking and account-switch/collision recovery UI, tested with the Auth emulator's provider popup. Real OAuth, provider configuration, authorized domains, email delivery, IAM/CORS and live cross-service rules remain pending live authorization.
 
 I've set up prototype Security Rules to keep the data in Firestore safe. They are designed to be secure for verified organization membership, backend-only writes, scoped scene access and bounded queries. However, you should review and verify them before broadly sharing your app. If you'd like, I can help you harden these rules.

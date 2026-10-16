@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.node.json",
+  "compilerOptions": { "lib": ["ES2023", "DOM"], "strict": true },
+  "include": [
+    "portal/playwright.config.ts",
+    "portal/serve.ts",
+    "portal/tests/**/*.ts",
+    "functions/test/portal-fixtures.ts"
+  ]
+}

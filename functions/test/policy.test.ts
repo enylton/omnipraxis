@@ -64,6 +64,20 @@ const updateMember = (actor: string, uid: string, role: string, status: string) 
 const rejected = (promise: Promise<unknown>, code: string) =>
   assert.rejects(promise, { code: `functions/${code}` });
 
+test('anonymous delivery status exposes only its boolean, never lists or client mutations', async () => {
+  await db.doc('publicSettings/delivery').set({ downloadsEnabled: true });
+  const anonymous = (await client()).db;
+  const status = doc(anonymous, 'publicSettings/delivery');
+  assert.deepEqual((await assertSucceeds(getDoc(status))).data(), { downloadsEnabled: true });
+  await assertFails(getDocs(query(collection(anonymous, 'publicSettings'), limit(1))));
+  await assertFails(updateDoc(status, { downloadsEnabled: false }));
+  await assertFails(setDoc(status, { downloadsEnabled: true, owner: 'forged' }));
+  await assertFails(deleteDoc(status));
+  await assertFails(setDoc(doc(anonymous, 'publicSettings/other'), { downloadsEnabled: true }));
+  await db.doc('publicSettings/delivery').update({ privateEmail: 'private@example.test' });
+  await assertFails(getDoc(status));
+});
+
 test('callable boundary rejects unsigned garbage, missing auth, forged organization and viewer administration', async () => {
   await rejected(invite('anonymous', email('outsider')), 'unauthenticated');
   await rejected(invite('viewer', email('outsider')), 'permission-denied');
