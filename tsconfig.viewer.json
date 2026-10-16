@@ -5,8 +5,8 @@
     "declaration": true,
     "emitDeclarationOnly": true,
     "outDir": "./build/viewer/types",
-    "rootDir": "./src",
+    "rootDir": "./src/viewer",
     "incremental": false
   },
-  "include": ["src/viewer/index.tsx"]
+  "include": ["src/viewer/api.ts"]
 }

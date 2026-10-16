@@ -11,7 +11,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "viewer:build": "vite build --config vite.viewer.config.ts && tsc -p tsconfig.viewer.json",
+    "viewer:build": "tsc -p tsconfig.app.json && vite build --config vite.viewer.config.ts && tsc -p tsconfig.viewer.json",
     "phase1:dev": "vite --config prototypes/phase1/vite.config.ts",
     "phase1:emulators": "firebase emulators:start --config prototypes/phase1/firebase.json --project demo-omnipraxis-phase1 --only firestore,storage",
     "phase1:seed": "node prototypes/phase1/seed.ts",

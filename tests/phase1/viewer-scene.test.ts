@@ -3,7 +3,7 @@ import { test } from 'node:test';
 
 import { parseViewerScene } from '../../src/viewer/scene.ts';
 
-import type { ViewerScene } from '../../src/viewer/scene.ts';
+import type { ViewerScene } from '../../src/viewer/api.ts';
 
 const valid = (): ViewerScene => ({
   template: 'environment',

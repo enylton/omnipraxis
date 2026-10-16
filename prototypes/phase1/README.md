@@ -10,11 +10,11 @@ Use Node 24, the repository-pinned pnpm, Java 21 or newer, fetched Git LFS asset
 
 1. Install dependencies with `pnpm install --frozen-lockfile`.
 2. Start the dedicated emulators: `pnpm phase1:emulators`.
-3. In another terminal, run `pnpm phase1:test`. This compiles the prototype rules and seeds real local SPZ/GLB/RAD/RADC assets, then runs the contract and access tests.
-4. Build the portable viewer: `pnpm viewer:build`.
+3. In another terminal, build the portable viewer: `pnpm viewer:build`.
+4. Run `pnpm phase1:test`. This verifies the built public API artifact, compiles the prototype rules, seeds real local SPZ/GLB/RAD/RADC assets, and runs the contract/access tests.
 5. Run `pnpm phase1:dev` and open the displayed loopback URL. Alternatively, run `pnpm phase1:test:browser`; it starts/stops the Vite test server itself.
 
-`pnpm phase1:seed` resets and seeds the fixtures without running tests. The browser configuration uses the installed Edge channel; it does not download a browser.
+`pnpm phase1:seed` resets and seeds the fixtures without running tests. The browser configuration uses the installed Edge channel; it does not download a browser. Rebuild the viewer after changes. Both `phase1:test` and browser tests now require its JavaScript, CSS, manifest, and public declarations. See `docs/viewer-api.md` for the artifact contract.
 
 ## What this proves
 
@@ -32,7 +32,7 @@ Live bucket IAM, CORS, cross-service rule permissions, regional latency, product
 
 Firebase `getBlob` does not expose an AbortSignal: canceling prevents stale mounts and URL allocation, but an SDK request already in progress may finish. This prototype does not promise that canceling stops billed network transfer. Production transfer controls require the live checks in the plan.
 
-The host owns Firebase clients for its lifetime. Each viewer owns its canvas, model cache entries, object URLs, input listeners, and rendering resources. GPU teardown is exercised through Spark and Three disposal/context loss; the browser counters are not a measurement of dedicated VRAM. R3F retains one last-rendered loop state; the lifecycle test allows that single detached tree and rejects per-session growth. The ESM viewer currently expects the host to include the existing runtime UI styles, as this prototype does. Packaging portal styles is a Phase 3 concern.
+The host owns Firebase clients for its lifetime. Each viewer owns its canvas, model cache entries, object URLs, input listeners, and rendering resources. GPU teardown is exercised through Spark and Three disposal/context loss; the browser counters are not a measurement of dedicated VRAM. R3F retains one last-rendered loop state; the lifecycle test allows that single detached tree and rejects per-session growth. The host loads the built `viewer.css`; it no longer imports `src/index.css`. Browser checks also mount SPZ/RAD viewers in a plain HTML host that loads only the built viewer files and scene assets.
 
 The verification receipt is recorded in `docs/phase1-loading-proof.md`. Phase 2 has not started.
 

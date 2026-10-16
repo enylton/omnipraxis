@@ -3,7 +3,7 @@ import { getBlob, ref } from 'firebase/storage';
 import { parseSceneDescriptor, sceneRevisionPrefix } from '../../contracts/scene.ts';
 
 import type { SceneAsset } from '../../contracts/scene';
-import type { ViewerScene } from '../../viewer/scene';
+import type { ViewerScene } from '../../viewer/api';
 import type { FirebaseStorage } from 'firebase/storage';
 
 export type ResolvedSceneAssets = {

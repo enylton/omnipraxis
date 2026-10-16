@@ -3,7 +3,6 @@ import { connectFirestoreEmulator, doc, getDoc, getFirestore, terminate } from '
 import { connectStorageEmulator, getStorage } from 'firebase/storage';
 
 import { resolveStorageAssets } from '../../src/adapters/firebase/sceneAssets';
-import '../../src/index.css';
 import './style.css';
 
 type ViewerModule = typeof import('../../src/viewer/index');
@@ -67,12 +66,19 @@ const open = async () => {
     }
     // This URL intentionally imports the built ESM artifact, not TSX source.
     const viewerUrl = '/build/viewer/viewer.js';
-    const { mountViewer } = (await import(/* @vite-ignore */ viewerUrl)) as ViewerModule;
+    const { mountViewer, VIEWER_API_VERSION } = (await import(
+      /* @vite-ignore */ viewerUrl
+    )) as ViewerModule;
     if (signal.aborted) {
       assets.dispose();
       return;
     }
+    if (VIEWER_API_VERSION !== 1) {
+      assets.dispose();
+      throw new Error('This host requires viewer API v1.');
+    }
     active = mountViewer(host, {
+      apiVersion: 1,
       scene: assets.scene,
       releaseAssets: assets.dispose,
       onReady: () => {

@@ -4,7 +4,7 @@ import { GltfModel } from '../runtime/assets/GltfModel';
 import { usePlayer } from '../runtime/player/PlayerContext';
 import { SplatModel } from '../runtime/spark/SplatModel';
 
-import type { ViewerScene } from './scene';
+import type { ViewerScene } from './api';
 import type { Group } from 'three';
 
 export type EnvironmentSceneProps = {

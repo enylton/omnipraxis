@@ -8,33 +8,61 @@ for (const splatsFormat of ['spz', 'rad'] as const) {
   }) => {
     const errors: string[] = [];
     const pages: string[] = [];
+    const requests: string[] = [];
+    page.on('console', (message) => {
+      if (message.type() === 'error') console.log('Artifact host:', message.text());
+    });
+    page.on('request', (request) => requests.push(request.url()));
     page.on('pageerror', (error) => errors.push(error.message));
     page.on('response', (response) => {
       if (response.url().includes('.radc') && response.ok()) pages.push(response.url());
     });
-    await page.goto('/');
+    await page.goto('/artifact-host');
     await page.evaluate(async (splatsFormat) => {
       const viewerUrl = '/build/viewer/viewer.js';
-      const { mountViewer } = (await import(viewerUrl)) as typeof import('../../src/viewer/index');
+      const { mountViewer, VIEWER_API_VERSION } = (await import(
+        viewerUrl
+      )) as typeof import('../../src/viewer/index');
+      if (VIEWER_API_VERSION !== 1) throw new Error('This host requires viewer API v1.');
       const folder = splatsFormat === 'rad' ? 'circuit-breaker' : 'base';
       const assetsRoot = `http://127.0.0.1:4175/omnipraxis/scenes/${folder}/`;
       let releases = 0;
+      const host = document.querySelector<HTMLElement>('#viewer')!;
+      const scene: Parameters<typeof mountViewer>[1]['scene'] = {
+        template: 'environment',
+        sessionId: 'local viewing session',
+        assets: {
+          splatsUrl: `${assetsRoot}${splatsFormat === 'rad' ? 'splats-lod.rad' : 'splats.spz'}`,
+          splatsFormat,
+          collidersUrl: `${assetsRoot}colliders.glb`,
+          resolvePageUrl:
+            splatsFormat === 'rad'
+              ? (filename) => `${assetsRoot}${filename}?resolved=custom`
+              : undefined,
+        },
+        spawn: { position: [0, 0, 0], yaw: 0, pitch: 0 },
+      };
+      if (splatsFormat === 'spz') {
+        let rejected = false;
+        try {
+          mountViewer(host, {
+            apiVersion: 2 as typeof VIEWER_API_VERSION,
+            scene,
+            releaseAssets: () => releases++,
+          });
+        } catch (error) {
+          rejected = error instanceof Error && error.message.includes('API version');
+        }
+        if (!rejected || host.hasChildNodes() || host.className !== 'consumer-host' || releases) {
+          throw new Error(
+            'An incompatible API version must fail before mounting or taking assets.',
+          );
+        }
+      }
       await new Promise<void>((resolve, reject) => {
-        const viewer = mountViewer(document.querySelector<HTMLElement>('#viewer')!, {
-          scene: {
-            template: 'environment',
-            sessionId: 'local viewing session',
-            assets: {
-              splatsUrl: `${assetsRoot}${splatsFormat === 'rad' ? 'splats-lod.rad' : 'splats.spz'}`,
-              splatsFormat,
-              collidersUrl: `${assetsRoot}colliders.glb`,
-              resolvePageUrl:
-                splatsFormat === 'rad'
-                  ? (filename) => `${assetsRoot}${filename}?resolved=custom`
-                  : undefined,
-            },
-            spawn: { position: [0, 1.7, 0], yaw: 0, pitch: 0 },
-          },
+        const viewer = mountViewer(host, {
+          apiVersion: 1,
+          scene,
           releaseAssets: () => releases++,
           onReady: resolve,
           onError: reject,
@@ -49,6 +77,18 @@ for (const splatsFormat of ['spz', 'rad'] as const) {
       });
     }, splatsFormat);
     await expect(page.locator('canvas')).toHaveCount(1);
+    const canvas = (await page.locator('canvas').boundingBox())!;
+    const reticle = (await page.locator('#viewer .interaction-reticle').boundingBox())!;
+    expect(reticle.x + reticle.width / 2).toBeCloseTo(canvas.x + canvas.width / 2, 0);
+    expect(reticle.y + reticle.height / 2).toBeCloseTo(canvas.y + canvas.height / 2, 0);
+    await expect(page.locator('#outside')).toHaveCSS('position', 'static');
+    await expect
+      .poll(async () => (await page.locator('canvas').screenshot()).byteLength, {
+        timeout: 30_000,
+        message: 'The packaged viewer should render scene content in the sized host.',
+      })
+      .toBeGreaterThan(10_000);
+    await page.screenshot({ path: `build/phase1/artifact-${splatsFormat}.png` });
     if (splatsFormat === 'rad') {
       await expect.poll(() => pages.length, { timeout: 30_000 }).toBeGreaterThan(0);
       expect(
@@ -63,8 +103,12 @@ for (const splatsFormat of ['spz', 'rad'] as const) {
       ),
     ).toBe(1);
     await expect(page.locator('canvas')).toHaveCount(0);
+    await expect(page.locator('#viewer')).toHaveAttribute('class', 'consumer-host');
     await page.waitForTimeout(1_000);
     expect(errors).toEqual([]);
+    expect(requests.filter((url) => /\/src\/|\/node_modules\/|\.wasm(?:\?|$)/.test(url))).toEqual(
+      [],
+    );
   });
 }
 

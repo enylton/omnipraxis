@@ -1,14 +1,4 @@
-export type ViewerScene = {
-  template: 'environment';
-  sessionId: string;
-  assets: {
-    splatsUrl: string;
-    splatsFormat: 'spz' | 'rad';
-    collidersUrl: string;
-    resolvePageUrl?: (filename: string) => string;
-  };
-  spawn: { position: readonly [number, number, number]; yaw: number; pitch: number };
-};
+import type { ViewerScene } from './api';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
