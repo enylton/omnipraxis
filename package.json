@@ -41,7 +41,11 @@
     "portal:configure": "node scripts/configure-portal.ts",
     "assets:import": "node functions/src/import-legacy.ts",
     "web:check": "node scripts/check-web-output.ts",
-    "hosting:check": "firebase emulators:exec --project demo-omnipraxis --only hosting \"node scripts/check-hosting.ts\""
+    "hosting:check": "firebase emulators:exec --project demo-omnipraxis --only hosting \"node scripts/check-hosting.ts\"",
+    "ops": "node functions/src/operator.ts",
+    "release:record": "node scripts/release.ts record",
+    "release:verify": "node scripts/release.ts verify",
+    "release:test": "node --test tests/release.test.ts"
   },
   "dependencies": {
     "@angular/common": "22.2.3",

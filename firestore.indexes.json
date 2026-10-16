@@ -1,6 +1,14 @@
 {
   "indexes": [
     {
+      "collectionGroup": "revisions",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "lastPublishedAt", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "scenes",
       "queryScope": "COLLECTION",
       "fields": [
@@ -75,5 +83,15 @@
       "collectionGroup": "uploads"
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "collectionGroup": "revisions",
+      "fieldPath": "status",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" },
+        { "order": "DESCENDING", "queryScope": "COLLECTION" },
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+      ]
+    }
+  ]
 }

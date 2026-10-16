@@ -60,3 +60,4 @@ jobs:
           name: omnipraxis-windows-x64
           path: build/windows-portable
           if-no-files-found: error
+          retention-days: 7

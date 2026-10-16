@@ -30,6 +30,16 @@ jobs:
       - run: pnpm portal:configure
         env:
           PORTAL_CONFIG_JSON: ${{ vars.PORTAL_CONFIG_JSON }}
+      - run: pnpm release:record
+      - run: pnpm release:verify
+      - uses: actions/upload-artifact@v7
+        with:
+          name: angular-preview-candidate-${{ github.sha }}
+          path: |
+            build/portal/browser
+            build/release-manifest.json
+          retention-days: 7
+          if-no-files-found: error
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}

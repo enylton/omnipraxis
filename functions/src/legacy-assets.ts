@@ -132,7 +132,7 @@ export async function importLegacyAssets(
       ? `publicSceneImports/${scene}/revisions/${revision}`
       : `${sceneRef.path}/revisions/${revision}`,
   );
-  await db.runTransaction(async (tx) => {
+  const completed = await db.runTransaction(async (tx) => {
     const [delivery, receipt, quota, organization, current, published] = await tx.getAll(
       db.doc('publicSettings/delivery'),
       receiptRef,
@@ -148,6 +148,11 @@ export async function importLegacyAssets(
       throw new Error('This immutable import identity already has different assets.');
     if (current.exists && current.get('fingerprint') !== plan.fingerprint)
       throw new Error('The revision already belongs to another publication.');
+    if (
+      ['retiring', 'deleted'].includes(receipt.get('status')) ||
+      ['deleting', 'deleted'].includes(current.get('status'))
+    )
+      throw new Error('Retired revisions cannot be imported again; use a new revision identity.');
     if (
       receipt.get('status') !== 'ready' &&
       (published.exists ? published.get('version') : 0) !== expectedVersion
@@ -171,6 +176,7 @@ export async function importLegacyAssets(
     ) {
       throw new Error('Resume the import with its original expected version.');
     }
+    return receipt.get('status') === 'ready';
   });
   const assets: Record<string, Asset & { generation: string }> = {};
   for (const { name, local, asset } of plan.files) {
@@ -181,6 +187,8 @@ export async function importLegacyAssets(
       throw new Error('Legacy source changed after planning.');
     const file = bucket.file(asset.path);
     const [exists] = await file.exists();
+    if (!exists && completed)
+      throw new Error('Completed import has missing objects; operator reconciliation required.');
     if (!exists)
       await file.save(bytes, {
         resumable: false,
@@ -234,6 +242,11 @@ export async function importLegacyAssets(
       throw new Error('Import ownership changed.');
     if (existing.exists && existing.get('fingerprint') !== plan.fingerprint)
       throw new Error('Revision changed.');
+    if (
+      ['retiring', 'deleted'].includes(receipt.get('status')) ||
+      ['deleting', 'deleted'].includes(existing.get('status'))
+    )
+      throw new Error('Retired revisions cannot be imported again.');
     if (receipt.get('status') === 'ready') return; // Idempotent retries never republish over a newer scene.
     if ((current.exists ? current.get('version') : 0) !== expectedVersion)
       throw new Error('Scene changed during import; previous publication is intact.');
@@ -241,6 +254,10 @@ export async function importLegacyAssets(
       status: 'ready',
       fingerprint: plan.fingerprint,
       descriptor,
+      manifest: assets,
+      storageBytes: plan.bytes,
+      importReceiptPath: receiptRef.path,
+      lastPublishedAt: Timestamp.now(),
       createdAt: Timestamp.now(),
     });
     tx.set(

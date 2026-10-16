@@ -49,5 +49,23 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Check backend and integration types
-        run: pnpm backend:build
+      - name: Set up Java for Firestore emulator
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Verify backend in demo emulators
+        run: pnpm backend:check
+
+      - run: pnpm release:test
+      - run: pnpm release:record
+      - run: pnpm release:verify
+      - uses: actions/upload-artifact@v7
+        with:
+          name: angular-portal-${{ github.sha }}
+          path: |
+            build/portal/browser
+            build/release-manifest.json
+          if-no-files-found: error
+          retention-days: 7

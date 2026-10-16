@@ -594,6 +594,7 @@ export function publishingService(db: Firestore, auth: Auth, bucket: Bucket) {
           fail('Scene changed; reload before publishing.', 'aborted');
         if (ready.get('status') !== 'ready')
           fail('Only validated immutable revisions can be published.', 'failed-precondition');
+        tx.update(ready.ref, { lastPublishedAt: Timestamp.now() });
         tx.update(ref, {
           status: 'published',
           publishedRevisionId: revision,

@@ -2,11 +2,13 @@ import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
+import * as logger from 'firebase-functions/logger';
 import { setGlobalOptions } from 'firebase-functions/v2';
 import { onCall } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 
 import { publishingService } from './publishing.js';
+import { retentionService } from './retention.js';
 import { organizationService } from './service.js';
 
 initializeApp();
@@ -43,6 +45,27 @@ export const archiveScene = onCall(publishing.archiveScene);
 export const expireUploads = onSchedule(
   { schedule: 'every 60 minutes', timeoutSeconds: 300, memory: '512MiB' },
   async () => {
-    await publishing.cleanupExpired();
+    await monitored('expireUploads', () => publishing.cleanupExpired());
+  },
+);
+
+async function monitored(operation: string, run: () => Promise<unknown>) {
+  try {
+    const result = await run();
+    logger.info('Maintenance completed', { component: 'omnipraxis.operations', operation, result });
+  } catch {
+    logger.error('Maintenance failed; reconcile before retrying', {
+      component: 'omnipraxis.operations',
+      operation,
+    });
+    throw new Error(`${operation} failed; operator reconciliation required.`);
+  }
+}
+export const pruneRevisions = onSchedule(
+  { schedule: 'every 24 hours', timeoutSeconds: 300, memory: '512MiB' },
+  async () => {
+    await monitored('pruneRevisions', () =>
+      retentionService(getFirestore(), getStorage().bucket()).sweep(),
+    );
   },
 );
