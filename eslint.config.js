@@ -89,7 +89,7 @@ export default tseslint.config(
   },
 
   {
-    files: ['tests/**/*.ts', 'prototypes/**/*.ts'],
+    files: ['tests/**/*.ts', 'prototypes/**/*.ts', 'scripts/**/*.ts'],
     languageOptions: { globals: globals.node },
   },
 

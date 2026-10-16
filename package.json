@@ -12,6 +12,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "viewer:build": "tsc -p tsconfig.app.json && vite build --config vite.viewer.config.ts && tsc -p tsconfig.viewer.json",
+    "viewer:check": "node scripts/record-viewer-check.ts --start && pnpm lint && pnpm build && pnpm viewer:build && pnpm desktop:renderer:build && firebase emulators:exec --config prototypes/phase1/firebase.json --project demo-omnipraxis-phase1 --only firestore,storage \"pnpm phase1:test && pnpm phase1:test:browser\" && node scripts/record-viewer-check.ts",
     "phase1:dev": "vite --config prototypes/phase1/vite.config.ts",
     "phase1:emulators": "firebase emulators:start --config prototypes/phase1/firebase.json --project demo-omnipraxis-phase1 --only firestore,storage",
     "phase1:seed": "node prototypes/phase1/seed.ts",

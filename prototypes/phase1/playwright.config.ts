@@ -19,13 +19,13 @@ export default defineConfig({
       command: 'pnpm phase1:dev',
       cwd: '../..',
       url: 'http://127.0.0.1:4174',
-      reuseExistingServer: true,
+      reuseExistingServer: false,
     },
     {
       command: 'pnpm exec vite --config prototypes/phase1/legacy.vite.config.ts',
       cwd: '../..',
       url: 'http://127.0.0.1:4175/omnipraxis/',
-      reuseExistingServer: true,
+      reuseExistingServer: false,
     },
   ],
 });
