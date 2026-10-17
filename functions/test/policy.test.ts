@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 import { after, before, beforeEach, test } from 'node:test';
 
 import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
@@ -29,7 +28,6 @@ import { Timestamp } from 'firebase-admin/firestore';
 import {
   accept,
   auth,
-  bucket,
   cleanup,
   client,
   db,
@@ -59,6 +57,20 @@ const memberPath = 'organizations/alpha/members/viewer';
 const scenePath = 'organizations/alpha/scenes/assigned';
 const asset = (scene = 'assigned', revision = 'r1', org = 'alpha') =>
   `organizations/${org}/scenes/${scene}/revisions/${revision}/splats.spz`;
+const gateway = async (path: string, uid = 'anonymous', range?: string) => {
+  const user = await client(uid);
+  return fetch(
+    `http://127.0.0.1:5101/${project}/us-central1/deliverAsset?path=${encodeURIComponent(path)}`,
+    {
+      headers: {
+        ...(user.auth.currentUser
+          ? { Authorization: `Bearer ${await getIdToken(user.auth.currentUser)}` }
+          : {}),
+        ...(range ? { Range: range } : {}),
+      },
+    },
+  );
+};
 const updateMember = (actor: string, uid: string, role: string, status: string) =>
   invoke(actor, 'updateMember', { orgId: 'alpha', uid, role, status });
 const rejected = (promise: Promise<unknown>, code: string) =>
@@ -401,37 +413,34 @@ test('all direct metadata creates, updates, deletes, oversized fields, role forg
   await assertFails(updateDoc(doc((await client('viewer')).db, memberPath), { role: 'admin' }));
 });
 
-test('Storage matrix permits only current assigned/organization assets or own-admin history and drafts', async () => {
+test('gateway permits only current assigned/organization assets or own-admin history and drafts', async () => {
   for (const uid of ['anonymous', 'outsider', 'unverified', 'suspended', 'admin-b', 'other'])
-    await assertFails(getMetadata(ref((await client(uid)).storage, asset())));
-  const viewer = await client('viewer');
-  await assertSucceeds(getMetadata(ref(viewer.storage, asset())));
-  await assertSucceeds(getMetadata(ref(viewer.storage, asset('organization'))));
+    assert.notEqual((await gateway(asset(), uid)).status, 200);
+  assert.equal((await gateway(asset(), 'viewer')).status, 200);
+  assert.equal((await gateway(asset('organization'), 'viewer')).status, 200);
   for (const [scene, revision, org] of [
     ['assigned', 'r0', 'alpha'],
     ['draft', 'r1', 'alpha'],
     ['archived', 'r1', 'alpha'],
     ['organization', 'r1', 'beta'],
   ])
-    await assertFails(getMetadata(ref(viewer.storage, asset(scene, revision, org))));
+    assert.notEqual((await gateway(asset(scene, revision, org), 'viewer')).status, 200);
   for (const [scene, revision] of [
     ['assigned', 'r0'],
     ['draft', 'r1'],
     ['archived', 'r1'],
   ])
-    await assertSucceeds(
-      getMetadata(ref((await client('admin-a')).storage, asset(scene, revision))),
-    );
+    assert.equal((await gateway(asset(scene, revision), 'admin-a')).status, 200);
   await db.doc(scenePath).update({ publishedRevisionId: 'r0' });
-  await assertFails(getMetadata(ref(viewer.storage, asset())));
-  await assertSucceeds(getMetadata(ref(viewer.storage, asset('assigned', 'r0'))));
+  assert.notEqual((await gateway(asset(), 'viewer')).status, 200);
+  assert.equal((await gateway(asset('assigned', 'r0'), 'viewer')).status, 200);
 });
 
 test('staging writes remain denied, including admin writes and injected download tokens, until controlled uploads exist', async () => {
   const storage = (await client('admin-a')).storage;
   const path = 'organizations/alpha/staging/upload1/splats.spz';
   const existing = 'organizations/alpha/staging/upload1/existing.spz';
-  await assertSucceeds(getMetadata(ref(storage, existing)));
+  await assertFails(getMetadata(ref(storage, existing)));
   for (const uid of ['viewer', 'admin-b', 'anonymous'])
     await assertFails(getMetadata(ref((await client(uid)).storage, existing)));
   for (const uid of ['admin-a', 'viewer', 'admin-b', 'anonymous'])
@@ -473,7 +482,7 @@ test('staging writes remain denied, including admin writes and injected download
   );
 });
 
-test('anonymous published metadata/binaries work; suspension denies all binary roles while keeping metadata', async () => {
+test('public gateway ranges stop immediately on suspension while metadata remains available', async () => {
   const publicDb = (await client()).db;
   await assertSucceeds(getDoc(doc(publicDb, 'publicScenes/base')));
   await assertFails(getDoc(doc(publicDb, 'publicScenes/draft')));
@@ -482,33 +491,12 @@ test('anonymous published metadata/binaries work; suspension denies all binary r
       query(collection(publicDb, 'publicScenes'), where('status', '==', 'published'), limit(25)),
     ),
   );
-  const url = `http://127.0.0.1:9399/v0/b/${bucket}/o/${encodeURIComponent('public-scenes/base/revisions/r1/splats.spz')}?alt=media`;
-  assert.equal((await fetch(url, { headers: { Range: 'bytes=0-1' } })).status, 206);
-  const rules = await readFile('../storage.rules', 'utf8');
-  const load = (source: string) =>
-    fetch(`http://127.0.0.1:9399/internal/setRules`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ rules: { files: [{ name: 'storage.rules', content: source }] } }),
-    });
-  try {
-    assert.ok(
-      (
-        await load(
-          rules.replace(
-            'function deliveryEnabled() { return true; }',
-            'function deliveryEnabled() { return false; }',
-          ),
-        )
-      ).ok,
-    );
-    assert.equal((await fetch(url)).status, 403);
-    for (const uid of ['viewer', 'admin-a'])
-      await assertFails(getMetadata(ref((await client(uid)).storage, asset())));
-    await assertSucceeds(getDoc(doc(publicDb, 'publicScenes/base')));
-  } finally {
-    assert.ok((await load(rules)).ok);
-  }
+  const path = 'public-scenes/base/revisions/r1/splats.spz';
+  assert.equal((await gateway(path, 'anonymous', 'bytes=0-1')).status, 206);
+  await db.doc('publicSettings/delivery').set({ downloadsEnabled: false });
+  assert.equal((await gateway(path)).status, 403);
+  assert.equal((await gateway(asset(), 'viewer')).status, 403);
+  await assertSucceeds(getDoc(doc(publicDb, 'publicScenes/base')));
 });
 
 test('operator bootstrap is verified, idempotent and not a callable', async () => {

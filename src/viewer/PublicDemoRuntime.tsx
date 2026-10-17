@@ -89,6 +89,7 @@ export const PublicDemoRuntime = ({
             circuitBreakerSetUrl={assets.props['circuit-breaker-set.glb']}
             boxUrl={assets.props['box.glb']}
             resolvePageUrl={assets.resolvePageUrl}
+            requestHeader={assets.requestHeader}
             onReady={onReady}
           />
         ) : (
@@ -102,6 +103,7 @@ export const PublicDemoRuntime = ({
             ventUrl={assets.props['venteio.glb']}
             boxUrl={assets.props['box.glb']}
             resolvePageUrl={assets.resolvePageUrl}
+            requestHeader={assets.requestHeader}
             onReady={onReady}
           />
         )}

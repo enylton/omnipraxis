@@ -3,8 +3,9 @@ import { PagedSplats, SplatFileType } from '@sparkjsdev/spark';
 export const createPagedSplats = (
   rootUrl: string,
   resolvePageUrl: (filename: string) => string,
+  requestHeader?: Record<string, string>,
 ): PagedSplats => {
-  const splats = new PagedSplats({ rootUrl, fileType: SplatFileType.RAD });
+  const splats = new PagedSplats({ rootUrl, fileType: SplatFileType.RAD, requestHeader });
   // Spark 2.1.0 has no page URL callback. Adapt only this instance's metadata;
   // URL construction and access policy belong to the caller. See docs/spark-compatibility.md.
   splats.radMetaPromise = splats.getRadMeta().then(({ meta, chunksStart }) => ({

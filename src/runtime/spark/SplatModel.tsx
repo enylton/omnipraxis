@@ -14,6 +14,7 @@ type SplatModelProps = {
   paged?: boolean;
   format?: 'spz' | 'rad';
   resolvePageUrl?: (filename: string) => string;
+  requestHeader?: Record<string, string>;
   onInitialized?: () => void;
   children?: ReactNode;
 };
@@ -24,6 +25,7 @@ export const SplatModel = ({
   paged = false,
   format,
   resolvePageUrl,
+  requestHeader,
   onInitialized,
 }: SplatModelProps) => {
   const splatMeshRef = useRef<SplatMeshImpl | null>(null);
@@ -35,12 +37,12 @@ export const SplatModel = ({
     () => [
       {
         url,
-        paged: resolvePageUrl ? createPagedSplats(url, resolvePageUrl) : paged,
+        paged: resolvePageUrl ? createPagedSplats(url, resolvePageUrl, requestHeader) : paged,
         fileType:
           format === 'spz' ? SplatFileType.SPZ : format === 'rad' ? SplatFileType.RAD : undefined,
       },
     ],
-    [format, paged, resolvePageUrl, url],
+    [format, paged, requestHeader, resolvePageUrl, url],
   );
 
   useEffect(() => {

@@ -123,7 +123,7 @@ for (const change of ['replacement', 'suspension', 'logout'] as const)
     const pending = new Promise<void>((resolve) => {
       requested = resolve;
     });
-    await page.route('**/v0/b/**/o/**', async (route) => {
+    await page.route(/\/deliverAsset\?path=/, async (route) => {
       requested();
       await blocked;
       await route.continue().catch(() => {});
@@ -214,7 +214,7 @@ for (const slug of ['base', 'circuit-breaker', 'pressure-gauge'])
     const binaries: string[] = [];
     page.on('pageerror', (error) => errors.push(error.message));
     page.on('response', (response) => {
-      if (/\.(spz|radc?|glb)(\?|$)/.test(response.url()) && response.ok())
+      if (/\.(spz|rad|radc|glb)/.test(decodeURIComponent(response.url())) && response.ok())
         binaries.push(response.url());
     });
     await page.goto(`/${slug}`);
@@ -225,9 +225,7 @@ for (const slug of ['base', 'circuit-breaker', 'pressure-gauge'])
           binaries.some(
             (url) =>
               decodeURIComponent(url).includes(`public-scenes/${slug}/revisions/`) &&
-              decodeURIComponent(url).includes(
-                slug === 'base' ? '.spz?alt=media' : '.radc?alt=media',
-              ),
+              decodeURIComponent(url).includes(slug === 'base' ? '.spz' : '.radc'),
           ),
         { timeout: 90_000 },
       )
@@ -236,7 +234,7 @@ for (const slug of ['base', 'circuit-breaker', 'pressure-gauge'])
     await expect(page.getByRole('heading', { name: 'Opening scene…' })).toHaveCount(0, {
       timeout: 90_000,
     });
-    expect(binaries.every((url) => new URL(url).origin === 'http://127.0.0.1:9399')).toBe(true);
+    expect(binaries.every((url) => new URL(url).origin === 'http://127.0.0.1:5101')).toBe(true);
     expect(errors).toEqual([]);
     await page.getByRole('link', { name: '← Catalog' }).click();
     await expect(page.locator('canvas')).toHaveCount(0);

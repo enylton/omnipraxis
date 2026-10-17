@@ -1,12 +1,14 @@
 import { initializeApp } from 'firebase-admin/app';
+import { getAppCheck } from 'firebase-admin/app-check';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import * as logger from 'firebase-functions/logger';
 import { setGlobalOptions } from 'firebase-functions/v2';
-import { onCall } from 'firebase-functions/v2/https';
+import { onCall, onRequest } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 
+import { assetDelivery } from './asset-delivery.js';
 import { publishingService } from './publishing.js';
 import { retentionService } from './retention.js';
 import { organizationService } from './service.js';
@@ -22,6 +24,11 @@ setGlobalOptions({
   concurrency: 1,
 });
 const service = organizationService(getFirestore(), getAuth());
+
+export const deliverAsset = onRequest(
+  { timeoutSeconds: 120, memory: '512MiB', cors: false },
+  assetDelivery(getFirestore(), getAuth(), getAppCheck(), getStorage().bucket()),
+);
 
 export const createInvitation = onCall(service.createInvitation);
 export const revokeInvitation = onCall(service.revokeInvitation);

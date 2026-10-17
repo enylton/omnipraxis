@@ -41,6 +41,7 @@ export const parseViewerScene = (value: unknown): ViewerScene => {
       splatsFormat: scene.assets.splatsFormat,
       collidersUrl: scene.assets.collidersUrl,
       resolvePageUrl: scene.assets.resolvePageUrl,
+      requestHeader: scene.assets.requestHeader,
     },
     spawn: {
       position: [...scene.spawn.position],

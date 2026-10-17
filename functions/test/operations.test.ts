@@ -147,30 +147,14 @@ test('legacy retention releases its receipt once and retired imports cannot recr
   assert.equal((await assetBucket.file(imported.files[0].asset.path).exists())[0], false);
 });
 test('delivery suspension/resumption is audited, serialized and fails closed', async () => {
-  const applied: boolean[] = [];
-  await ops.setDelivery(false, 'budget drill', async (enabled) => {
-    applied.push(enabled);
-  });
+  await ops.setDelivery(false, 'budget drill');
   assert.equal((await db.doc('publicSettings/delivery').get()).get('downloadsEnabled'), false);
-  await ops.setDelivery(true, 'reviewed resumption', async (enabled) => {
-    applied.push(enabled);
-  });
-  assert.deepEqual(applied, [false, true]);
-  await assert.rejects(
-    ops.setDelivery(true, 'failure drill', async (enabled) => {
-      if (enabled) throw new Error('rules failed');
-    }),
-    /rules failed/,
-  );
-  assert.equal((await db.doc('publicSettings/delivery').get()).get('downloadsEnabled'), false);
-  assert.equal((await db.doc('system/deliveryOperation').get()).get('rulesDisabled'), true);
+  await ops.setDelivery(true, 'reviewed resumption');
+  assert.equal((await db.doc('publicSettings/delivery').get()).get('downloadsEnabled'), true);
   await db
     .doc('system/deliveryOperation')
     .update({ leaseUntil: Timestamp.fromMillis(Date.now() + 10000) });
-  await assert.rejects(
-    ops.setDelivery(true, 'concurrent drill', async () => {}),
-    /active/,
-  );
+  await assert.rejects(ops.setDelivery(true, 'concurrent drill'), /active/);
   assert.equal(
     (await db.collection('systemOperations').where('action', '==', 'delivery.completed').get())
       .size,
@@ -196,7 +180,7 @@ test('public recovery uses version/status checks and suspension; Drill Rig canno
   await db.doc('publicSettings/delivery').set({ downloadsEnabled: false });
   await assert.rejects(ops.restorePublic('base', 'older', 3, 'recovery drill'), /suspended/);
 });
-test('operator CLI applies persisted Storage switch and rejects foreign endpoints; inventory never reveals token values', async () => {
+test('operator CLI changes delivery state without changing deny-all rules and hides token values', async () => {
   const source = await readFile('../storage.rules');
   const run = (args: string[], env = process.env) =>
     promisify(execFile)(process.execPath, ['src/operator.ts', ...args], {
@@ -207,13 +191,15 @@ test('operator CLI applies persisted Storage switch and rejects foreign endpoint
   await assert.rejects(run(['report'], { ...process.env, GCLOUD_PROJECT: 'foreign' }), /non-demo/);
   try {
     await run(['suspend', '--reason', 'local controlled drill', '--apply']);
-    assert.match(await readFile('../storage.rules', 'utf8'), /deliveryEnabled\(\) \{ return false/);
+    assert.equal((await db.doc('publicSettings/delivery').get()).get('downloadsEnabled'), false);
+    assert.deepEqual(await readFile('../storage.rules'), source);
     const file = assetBucket.file('public-scenes/base/revisions/r1/splats.spz');
     const response = await fetch(
       `http://127.0.0.1:9399/v0/b/${assetBucket.name}/o/${encodeURIComponent(file.name)}?alt=media`,
     );
     assert.equal(response.status, 403);
     await run(['resume', '--reason', 'local reviewed resumption', '--apply']);
+    assert.equal((await db.doc('publicSettings/delivery').get()).get('downloadsEnabled'), true);
     const [metadata] = await file.getMetadata();
     await file.setMetadata({
       metadata: { firebaseStorageDownloadTokens: 'do-not-print-this-token' },
@@ -223,15 +209,6 @@ test('operator CLI applies persisted Storage switch and rejects foreign endpoint
     assert.ok(!JSON.stringify(report).includes('do-not-print-this-token'));
     await file.setMetadata({ metadata: metadata.metadata ?? {} });
   } finally {
-    // Restore persisted source and emulator policy even when the drill fails.
-    const { writeFile } = await import('node:fs/promises');
-    await writeFile('../storage.rules', source);
-    await fetch('http://127.0.0.1:9399/internal/setRules', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        rules: { files: [{ name: 'storage.rules', content: source.toString() }] },
-      }),
-    });
+    await db.doc('publicSettings/delivery').set({ downloadsEnabled: true });
   }
 });

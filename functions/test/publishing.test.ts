@@ -4,7 +4,8 @@ import { readFile } from 'node:fs/promises';
 import { after, before, beforeEach, test } from 'node:test';
 import { crc32, deflateSync, gzipSync } from 'node:zlib';
 
-import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
+import { assertFails } from '@firebase/rules-unit-testing';
+import { getIdToken } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { getMetadata, ref, updateMetadata, uploadBytes } from 'firebase/storage';
 import { Timestamp } from 'firebase-admin/firestore';
@@ -135,6 +136,11 @@ test('controlled chunks are immutable and token-free; only a ready revision publ
   const [metadata] = await assetBucket.file(path).getMetadata();
   assert.equal(metadata.metadata?.firebaseStorageDownloadTokens, undefined);
   const viewer = await client('viewer');
+  const delivered = async () =>
+    fetch(
+      `http://127.0.0.1:5101/demo-omnipraxis/us-central1/deliverAsset?path=${encodeURIComponent(path)}`,
+      { headers: { Authorization: `Bearer ${await getIdToken(viewer.auth.currentUser!)}` } },
+    );
   await assertFails(getMetadata(ref(viewer.storage, path)));
   const admin = await client('admin-a');
   await assertFails(
@@ -157,20 +163,20 @@ test('controlled chunks are immutable and token-free; only a ready revision publ
     revisionId: upload.revisionId,
     expectedVersion: 1,
   });
-  await assertSucceeds(getMetadata(ref(viewer.storage, path)));
+  assert.equal((await delivered()).status, 200);
   await invoke('admin-a', 'archiveScene', {
     orgId: 'alpha',
     sceneId: 'new-environment',
     expectedVersion: 2,
   });
-  await assertFails(getMetadata(ref(viewer.storage, path)));
+  assert.equal((await delivered()).status, 403);
   await invoke('admin-a', 'publishRevision', {
     orgId: 'alpha',
     sceneId: 'new-environment',
     revisionId: upload.revisionId,
     expectedVersion: 3,
   });
-  await assertSucceeds(getMetadata(ref(viewer.storage, path)));
+  assert.equal((await delivered()).status, 200);
   assert.equal(
     (await db.doc('system/assetQuota').get()).get('usedBytes'),
     Object.values(files).reduce((n, b) => n + b.length, 0),

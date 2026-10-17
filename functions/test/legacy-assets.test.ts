@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { readFile } from 'node:fs/promises';
 import { after, before, beforeEach, test } from 'node:test';
 
 import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
@@ -79,17 +78,17 @@ test('trusted restricted import checks bytes, counts quota once, preserves newer
     (await db.doc('organizations/alpha/scenes/drill-rig').get()).get('publishedRevisionId'),
     'import-replacement',
   );
-  await assertSucceeds(
-    getMetadata(ref((await client('viewer')).storage, next.files[0].asset.path)),
-  );
+  await assertFails(getMetadata(ref((await client('viewer')).storage, next.files[0].asset.path)));
   await assertFails(getMetadata(ref((await client()).storage, next.files[0].asset.path)));
-  // Firebase emulator GET generates a token; a retry must fail closed if an object acquired one.
+  await assetBucket.file(next.files[0].asset.path).setMetadata({
+    metadata: { firebaseStorageDownloadTokens: 'injected-token' },
+  });
   await assert.rejects(importLegacyAssets(db, assetBucket, next, 2), /token\/cache/);
   await assetBucket.file(path).save(Buffer.from('changed'), { resumable: false });
   await assert.rejects(importLegacyAssets(db, assetBucket, plan), /checksum/);
 });
 
-test('imports start token-free; rule-governed suspension works and the emulator GET token bypass remains a release blocker', async () => {
+test('imports start token-free; gateway suspension denies published bytes', async () => {
   const plan = await planLegacyImport('../public', 'base', 'import-proof', 'alpha');
   // The ordinary policy fixture already has Base; this is an optimistic replacement.
   await assert.rejects(importLegacyAssets(db, assetBucket, plan), /Scene changed/);
@@ -103,39 +102,14 @@ test('imports start token-free; rule-governed suspension works and the emulator 
   const url = `http://127.0.0.1:9399/v0/b/${assetBucket.name}/o/${encodeURIComponent(asset.path)}?alt=media`;
   const [metadata] = await assetBucket.file(asset.path).getMetadata();
   assert.deepEqual(metadata.metadata ?? {}, {});
-  assert.equal((await fetch(url, { headers: { Range: 'bytes=0-1' } })).status, 206);
+  assert.equal((await fetch(url, { headers: { Range: 'bytes=0-1' } })).status, 403);
   const [afterRead] = await assetBucket.file(asset.path).getMetadata();
-  const generatedToken = afterRead.metadata?.firebaseStorageDownloadTokens;
-  assert.equal(typeof generatedToken, 'string');
-  const rules = await readFile('../storage.rules', 'utf8');
-  const load = (content: string) =>
-    fetch('http://127.0.0.1:9399/internal/setRules', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ rules: { files: [{ name: 'storage.rules', content }] } }),
-    });
-  try {
-    assert.ok(
-      (
-        await load(
-          rules.replace(
-            'function deliveryEnabled() { return true; }',
-            'function deliveryEnabled() { return false; }',
-          ),
-        )
-      ).ok,
-    );
-    assert.equal((await fetch(url)).status, 403);
-    // Preserve this evidence rather than claim emulator rule enforcement covers bearer tokens.
-    assert.equal(
-      (await fetch(`${url}&token=${generatedToken}`, { headers: { Range: 'bytes=0-1' } })).status,
-      206,
-    );
-    await assertSucceeds(getDoc(doc(anonymous.db, 'publicScenes/base')));
-  } finally {
-    assert.ok((await load(rules)).ok);
-  }
+  assert.deepEqual(afterRead.metadata ?? {}, {});
+  const gateway = `http://127.0.0.1:5101/demo-omnipraxis/us-central1/deliverAsset?path=${encodeURIComponent(asset.path)}`;
+  assert.equal((await fetch(gateway, { headers: { Range: 'bytes=0-1' } })).status, 206);
   await db.doc('publicSettings/delivery').update({ downloadsEnabled: false });
+  assert.equal((await fetch(gateway, { headers: { Range: 'bytes=0-1' } })).status, 403);
+  await assertSucceeds(getDoc(doc(anonymous.db, 'publicScenes/base')));
   const blocked = await planLegacyImport('../public', 'drill-rig', 'blocked-import', 'alpha');
   await assert.rejects(importLegacyAssets(db, assetBucket, blocked), /suspended/);
 });

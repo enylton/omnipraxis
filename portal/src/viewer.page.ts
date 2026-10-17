@@ -191,10 +191,9 @@ export class ViewerPage {
         });
         if (closed || !descriptor) return;
         const acquired = await resolvePublicAssets(
-          this.session.storage,
+          this.session.assets,
           descriptor,
           controller.signal,
-          this.session.storageOrigin,
         );
         assets = acquired;
         if (closed) {
@@ -315,10 +314,9 @@ export class ViewerPage {
       )
         throw new Error('Revision identity mismatch.');
       const acquired = await resolveStorageAssets(
-        this.session.storage,
+        this.session.assets,
         descriptor,
         controller.signal,
-        this.session.storageOrigin,
       );
       assets = acquired;
       if (closed) {

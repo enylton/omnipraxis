@@ -1,6 +1,3 @@
-import { readFile, writeFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
-
 import { deleteApp, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
@@ -43,27 +40,7 @@ try {
   } else if (command === 'suspend' || command === 'resume') {
     const reason = operatorReason(value('--reason'));
     result = { dryRun: true, command, reason };
-    if (apply)
-      result = await ops.setDelivery(command === 'resume', reason, async (enabled) => {
-        const path = fileURLToPath(new URL('../../storage.rules', import.meta.url));
-        const source = await readFile(path, 'utf8');
-        const pattern = /function deliveryEnabled\(\) \{ return (true|false); \}/g;
-        if ([...source.matchAll(pattern)].length !== 1)
-          throw new Error('Review the literal Storage delivery switch before operating.');
-        const rules = source.replace(pattern, `function deliveryEnabled() { return ${enabled}; }`);
-        // Persist before applying so the next ordinary rules deployment keeps the operator decision.
-        await writeFile(path, rules);
-        const response = await fetch('http://127.0.0.1:9399/internal/setRules', {
-          method: 'PUT',
-          signal: AbortSignal.timeout(20000),
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ rules: { files: [{ name: 'storage.rules', content: rules }] } }),
-        });
-        if (!response.ok)
-          throw new Error(
-            'Emulator rules update failed; inspect deliveryOperation and the persisted switch.',
-          );
-      });
+    if (apply) result = await ops.setDelivery(command === 'resume', reason);
   } else if (command === 'restore-public') {
     const reason = operatorReason(value('--reason'));
     result = {

@@ -65,6 +65,7 @@ type CircuitBreakerSceneProps = {
   circuitBreakerSetUrl?: string;
   boxUrl?: string;
   resolvePageUrl?: (filename: string) => string;
+  requestHeader?: Record<string, string>;
   onReady?: () => void;
 };
 
@@ -76,6 +77,7 @@ export const CircuitBreakerScene = ({
   circuitBreakerSetUrl = CIRCUIT_BREAKER_SET_URL,
   boxUrl = BOX_URL,
   resolvePageUrl,
+  requestHeader,
   onReady,
 }: CircuitBreakerSceneProps = {}) => {
   const { setHeldItem, idleTime, getOrientation } = usePlayer();
@@ -150,6 +152,7 @@ export const CircuitBreakerScene = ({
         format="rad"
         paged
         resolvePageUrl={resolvePageUrl}
+        requestHeader={requestHeader}
         onInitialized={readiness.splatsReady}
       >
         {powerOutage ? <SplatEdit type="all" color={[0.1, 0.1, 0.1]} /> : null}

@@ -50,6 +50,7 @@ type PressureGaugeSceneProps = {
   ventUrl?: string;
   boxUrl?: string;
   resolvePageUrl?: (filename: string) => string;
+  requestHeader?: Record<string, string>;
   onReady?: () => void;
 };
 
@@ -63,6 +64,7 @@ export const PressureGaugeScene = ({
   ventUrl = VENTEIO_URL,
   boxUrl = BOX_URL,
   resolvePageUrl,
+  requestHeader,
   onReady,
 }: PressureGaugeSceneProps = {}) => {
   const { idleTime, getOrientation, setHeldItem } = usePlayer();
@@ -206,6 +208,7 @@ export const PressureGaugeScene = ({
         format="rad"
         paged
         resolvePageUrl={resolvePageUrl}
+        requestHeader={requestHeader}
         onInitialized={readiness.splatsReady}
       />
       <GltfModel

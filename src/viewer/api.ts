@@ -10,6 +10,7 @@ export type ViewerScene = {
     splatsFormat: 'spz' | 'rad';
     collidersUrl: string;
     resolvePageUrl?: (filename: string) => string;
+    requestHeader?: Record<string, string>;
   };
   spawn: { position: readonly [number, number, number]; yaw: number; pitch: number };
 };

@@ -1,0 +1,16 @@
+{
+  "mode": "firebase",
+  "firebase": {
+    "apiKey": "AIzaSyB6mjs0Dnr4BktRa0KdWdbUM3wo6-WZIRc",
+    "projectId": "omnipraxis-f8141",
+    "authDomain": "omnipraxis-f8141.firebaseapp.com",
+    "storageBucket": "omnipraxis-f8141.firebasestorage.app",
+    "appId": "1:901529932889:web:2dec7490b5138b01ec8d48"
+  },
+  "appCheckSiteKey": "6LeCivMtAAAAAMr9ELR9cffyA6AJmWwlQxvSpRvS",
+  "allowedOrigins": [
+    "https://omnipraxis.efluxa.com",
+    "https://omnipraxis-f8141.web.app",
+    "https://omnipraxis-f8141.firebaseapp.com"
+  ]
+}

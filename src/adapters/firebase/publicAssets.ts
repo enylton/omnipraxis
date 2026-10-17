@@ -1,16 +1,13 @@
-import { getBlob, ref } from 'firebase/storage';
-
-import { storageMediaUrl, verifyAsset } from './sceneAssets';
+import { verifyAsset } from './sceneAssets';
 import { parsePublicScene } from '../../contracts/publicScene';
 
+import type { AssetTransport } from './assetTransport';
 import type { PublicDemoAssets } from '../../viewer/public-api';
-import type { FirebaseStorage } from 'firebase/storage';
 
 export async function resolvePublicAssets(
-  storage: FirebaseStorage,
+  transport: AssetTransport,
   input: unknown,
   signal: AbortSignal,
-  origin?: string,
 ) {
   const descriptor = parsePublicScene(input);
   const urls: string[] = [];
@@ -23,7 +20,7 @@ export async function resolvePublicAssets(
     for (const [name, asset] of Object.entries(descriptor.assets)) {
       if (name.endsWith('.radc')) continue;
       signal.throwIfAborted();
-      const blob = await getBlob(ref(storage, asset.path), asset.bytes);
+      const blob = await transport.read(asset.path, asset.bytes, signal);
       signal.throwIfAborted();
       await verifyAsset(blob, asset);
       signal.throwIfAborted();
@@ -48,8 +45,9 @@ export async function resolvePublicAssets(
                 !Object.hasOwn(descriptor.assets, filename)
               )
                 throw new Error('RAD page is outside the imported revision.');
-              return storageMediaUrl(storage, descriptor.assets[filename].path, origin);
+              return transport.page(descriptor.assets[filename].path);
             },
+      requestHeader: descriptor.sceneId === 'base' ? undefined : await transport.headers(),
     };
     return { assets, dispose };
   } catch (error) {

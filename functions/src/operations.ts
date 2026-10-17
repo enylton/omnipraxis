@@ -20,11 +20,7 @@ export function operatorReason(reason: string) {
 }
 export function operationsService(db: Firestore, bucket: Bucket) {
   const delivery = db.doc('publicSettings/delivery');
-  async function setDelivery(
-    enabled: boolean,
-    reason: string,
-    applyRules: (enabled: boolean) => Promise<void>,
-  ) {
+  async function setDelivery(enabled: boolean, reason: string) {
     reason = operatorReason(reason);
     const token = randomUUID();
     const lock = db.doc('system/deliveryOperation');
@@ -51,7 +47,6 @@ export function operationsService(db: Firestore, bucket: Bucket) {
       });
     });
     try {
-      await applyRules(enabled);
       await db.runTransaction(async (tx) => {
         const current = await tx.get(lock);
         if (current.get('token') !== token)
@@ -67,23 +62,15 @@ export function operationsService(db: Firestore, bucket: Bucket) {
         });
       });
     } catch (error) {
-      let rulesDisabled = false;
-      try {
-        await applyRules(false);
-        rulesDisabled = true;
-      } catch {
-        /* Recorded below; requires reconciliation. */
-      }
       await db.runTransaction(async (tx) => {
         const current = await tx.get(lock);
         if (current.get('token') !== token) return;
         tx.set(delivery, { downloadsEnabled: false });
-        tx.update(lock, { status: 'failed', rulesDisabled, leaseUntil: Timestamp.fromMillis(0) });
+        tx.update(lock, { status: 'failed', leaseUntil: Timestamp.fromMillis(0) });
         tx.create(db.collection('systemOperations').doc(), {
           action: 'delivery.failed',
           reason,
           token,
-          rulesDisabled,
           createdAt: Timestamp.now(),
         });
       });

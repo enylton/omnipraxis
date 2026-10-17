@@ -1,5 +1,6 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { initializeApp } from 'firebase/app';
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
 import {
   browserSessionPersistence,
   getAuth,
@@ -18,6 +19,7 @@ import { connectFunctionsEmulator, getFunctions, httpsCallable } from 'firebase/
 import { connectStorageEmulator, getStorage } from 'firebase/storage';
 
 import { PORTAL_CONFIG } from './firebase-config';
+import { assetTransport } from '../../src/adapters/firebase/assetTransport';
 import { createIdentity } from '../../src/adapters/firebase/identity';
 
 type Identity = { uid: string; email: string | null; verified: boolean };
@@ -48,6 +50,18 @@ export class PortalSession {
   readonly db = getFirestore(this.app);
   readonly functions = getFunctions(this.app, 'us-central1');
   readonly storage = getStorage(this.app);
+  private readonly appCheck = this.config.appCheckSiteKey
+    ? initializeAppCheck(this.app, {
+        provider: new ReCaptchaEnterpriseProvider(this.config.appCheckSiteKey),
+        isTokenAutoRefreshEnabled: true,
+      })
+    : null;
+  readonly assets = assetTransport(
+    this.config.firebase.projectId,
+    this.auth,
+    this.appCheck,
+    this.config.mode === 'emulator',
+  );
   readonly storageOrigin = this.config.mode === 'emulator' ? 'http://127.0.0.1:9399' : undefined;
   readonly identity = createIdentity(this.auth);
   readonly user = signal<Identity | null>(null);

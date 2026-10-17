@@ -1,6 +1,6 @@
 import { deleteApp, initializeApp } from 'firebase/app';
 import { connectFirestoreEmulator, doc, getDoc, getFirestore, terminate } from 'firebase/firestore';
-import { connectStorageEmulator, getStorage } from 'firebase/storage';
+import { connectStorageEmulator, getBlob, getStorage, ref } from 'firebase/storage';
 
 import { resolveStorageAssets } from '../../src/adapters/firebase/sceneAssets';
 import './style.css';
@@ -59,7 +59,16 @@ const open = async () => {
     if (!snapshot.exists()) throw new Error('Missing scene fixture. Run pnpm viewer:seed first.');
     const descriptor =
       scene.value === 'circuit-breaker' ? snapshot.data().descriptor : snapshot.data();
-    const assets = await resolveStorageAssets(storage, descriptor, signal, 'http://127.0.0.1:9299');
+    const assets = await resolveStorageAssets(
+      {
+        read: (path, maxBytes) => getBlob(ref(storage, path), maxBytes),
+        page: (path) =>
+          `http://127.0.0.1:9299/v0/b/${storage.app.options.storageBucket}/o/${encodeURIComponent(path)}?alt=media`,
+        headers: async () => ({}),
+      },
+      descriptor,
+      signal,
+    );
     if (signal.aborted) {
       assets.dispose();
       return;

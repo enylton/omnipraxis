@@ -33,6 +33,8 @@ const bucket = getStorage(app).bucket();
 export const password = 'Portal-demo-only-123!';
 const descriptors = new Map<string, SceneDescriptor>();
 const publicDescriptors = new Map<string, unknown>();
+const publicManifests = new Map<string, Record<string, unknown>>();
+const privateManifests = new Map<string, Record<string, unknown>>();
 export async function prepare() {
   for (const uid of ['admin', 'viewer', 'outsider', 'unverified']) {
     const data = {
@@ -59,7 +61,11 @@ export async function prepare() {
     if (!exists) {
       const imported = await importLegacyAssets(db, bucket, plan);
       publicDescriptors.set(scene, imported.descriptor);
-    } else
+      publicManifests.set(
+        scene,
+        (imported.descriptor as { assets: Record<string, unknown> }).assets,
+      );
+    } else {
       publicDescriptors.set(scene, {
         schemaVersion: 1,
         kind: 'public-demo-v1',
@@ -67,10 +73,23 @@ export async function prepare() {
         revisionId: 'legacy-v1',
         assets: Object.fromEntries(plan.files.map(({ name, asset }) => [name, asset])),
       });
+      publicManifests.set(
+        scene,
+        Object.fromEntries(
+          await Promise.all(
+            plan.files.map(async ({ name, asset }) => {
+              const [metadata] = await bucket.file(asset.path).getMetadata();
+              return [name, { ...asset, generation: String(metadata.generation) }];
+            }),
+          ),
+        ),
+      );
+    }
   }
   for (const revision of ['r1', 'r2']) {
     const prefix = `organizations/alpha/scenes/drill-rig/revisions/${revision}/`;
     const assets = {} as SceneDescriptor['assets'];
+    const manifest: Record<string, unknown> = {};
     for (const [key, filename, format] of [
       ['splats', 'splats.spz', 'spz'],
       ['colliders', 'colliders.glb', 'glb'],
@@ -90,6 +109,12 @@ export async function prepare() {
           format,
         },
       });
+      const [metadata] = await bucket.file(prefix + filename).getMetadata();
+      manifest[filename] = {
+        path: prefix + filename,
+        bytes: bytes.length,
+        generation: String(metadata.generation),
+      };
     }
     descriptors.set(revision, {
       schemaVersion: 1,
@@ -100,6 +125,7 @@ export async function prepare() {
       assets,
       spawn: { position: [0, 0, 0], yaw: 0, pitch: 0 },
     });
+    privateManifests.set(revision, manifest);
   }
 }
 export async function reset() {
@@ -130,6 +156,7 @@ export async function reset() {
     batch.set(db.doc(`organizations/alpha/scenes/drill-rig/revisions/${revision}`), {
       status: 'ready',
       descriptor,
+      manifest: privateManifests.get(revision),
     });
   batch.set(db.doc('publicSettings/delivery'), { downloadsEnabled: true });
   for (const [scene, descriptor] of publicDescriptors)
@@ -139,6 +166,11 @@ export async function reset() {
       title: scene,
       publishedRevisionId: 'legacy-v1',
       descriptor,
+    });
+  for (const [scene, manifest] of publicManifests)
+    batch.set(db.doc(`publicSceneImports/${scene}/revisions/legacy-v1`), {
+      status: 'ready',
+      manifest,
     });
   await batch.commit();
 }

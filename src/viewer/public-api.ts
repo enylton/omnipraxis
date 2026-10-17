@@ -6,6 +6,7 @@ export type PublicDemoAssets = {
   collidersUrl: string;
   props: Readonly<Record<string, string>>;
   resolvePageUrl?: (filename: string) => string;
+  requestHeader?: Record<string, string>;
 };
 export type PublicDemoOptions = {
   apiVersion: 2;

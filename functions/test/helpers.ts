@@ -80,6 +80,7 @@ export async function seed() {
   await service.bootstrap({ orgId: 'alpha', name: 'Alpha', adminUid: 'admin-a' });
   await service.bootstrap({ orgId: 'beta', name: 'Beta', adminUid: 'admin-b' });
   const batch = db.batch();
+  batch.set(db.doc('publicSettings/delivery'), { downloadsEnabled: true });
   for (const uid of ['viewer', 'other', 'suspended']) {
     batch.set(db.doc(`organizations/alpha/members/${uid}`), {
       uid,
@@ -141,6 +142,20 @@ export async function seed() {
       resumable: false,
       metadata: { contentType: 'application/octet-stream', cacheControl: 'no-store' },
     });
+    const [metadata] = await storage.file(path).getMetadata();
+    const publicMatch = /^public-scenes\/([^/]+)\/revisions\/([^/]+)\//.exec(path);
+    const privateMatch = /^(organizations\/[^/]+\/scenes\/[^/]+)\/revisions\/([^/]+)\//.exec(path);
+    if (!publicMatch && !privateMatch) continue;
+    const revisionPath = publicMatch
+      ? `publicSceneImports/${publicMatch[1]}/revisions/${publicMatch[2]}`
+      : `${privateMatch![1]}/revisions/${privateMatch![2]}`;
+    await db.doc(revisionPath).set(
+      {
+        status: 'ready',
+        manifest: { 'splats.spz': { path, bytes: 4, generation: String(metadata.generation) } },
+      },
+      { merge: true },
+    );
   }
 }
 

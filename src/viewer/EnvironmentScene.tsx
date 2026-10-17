@@ -39,6 +39,7 @@ export const EnvironmentScene = ({ scene, onReady, onModelLoaded }: EnvironmentS
         format={scene.assets.splatsFormat}
         paged={scene.assets.splatsFormat === 'rad'}
         resolvePageUrl={scene.assets.resolvePageUrl}
+        requestHeader={scene.assets.requestHeader}
         onInitialized={handleSplatsReady}
       />
       <GltfModel

@@ -73,9 +73,9 @@ test('public replacement during acquisition prevents stale mounting and never fe
   });
   let pages = 0;
   page.on('request', (request) => {
-    if (decodeURIComponent(request.url()).includes('.radc?')) pages++;
+    if (decodeURIComponent(request.url()).includes('.radc')) pages++;
   });
-  await page.route('**/v0/b/**/o/**', async (route) => {
+  await page.route(/\/deliverAsset\?path=/, async (route) => {
     requested();
     await held;
     await route.continue().catch(() => {});
