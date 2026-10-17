@@ -4,7 +4,7 @@ Trusted legacy imports are implemented in `src/legacy-assets.ts`; the root `pnpm
 
 Post-read token safety is not certified: the installed Storage emulator adds a download token on successful Firebase GETs, including media requests. The new import regression records its resulting bearer-token rules bypass. Initial-write metadata checks still pass and importer retries reject token-bearing objects; actual cloud post-read behavior must be verified/resolved before enabling live delivery. See the release blocker in the cutover guide.
 
-This implements the backend policy and organization lifecycle used by [the Angular portal](../portal/README.md). No live provider/rules/functions deployment, database/bucket provisioning, first live administrator selection, or production bootstrap is performed. Keep the Phase 1 viewer proof separate.
+This implements the backend policy and organization lifecycle used by [the Angular portal](../portal/README.md). Phase 8 has provisioned the closed, empty Standard Firestore database and private Storage bucket, with Google/password Auth initialized and Anonymous disabled. Application rules/functions deployment and production bootstrap remain pending. The intended first administrator is recorded, but its verified UID has not been bootstrapped. See [the foundation and owner checklist](../docs/cloud-cutover.md#phase-8-foundation-resources-and-owner-setup--16-october-2026). Keep the Phase 1 viewer proof separate.
 
 ## Run
 

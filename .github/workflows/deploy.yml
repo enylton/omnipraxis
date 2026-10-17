@@ -103,6 +103,44 @@ jobs:
   deploy_hosting:
     needs: verify
     if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && vars.CLOUD_CUTOVER_READY == 'true' }}
-    uses: ./.github/workflows/firebase-hosting-merge.yml
-    secrets:
-      FIREBASE_SERVICE_ACCOUNT_OMNIPRAXIS_F8141: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_OMNIPRAXIS_F8141 }}
+    environment: firebase-production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: firebase-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up pnpm and Node
+        uses: pnpm/setup@v1
+        with:
+          runtime: node@24
+          cache: true
+          install: false
+      - run: pnpm install --frozen-lockfile
+      - name: Download this run's verified portal
+        uses: actions/download-artifact@v8
+        with:
+          name: angular-portal-${{ github.sha }}
+          path: build
+      - name: Verify artifact integrity and source commit
+        run: |
+          pnpm release:verify
+          node --input-type=module -e "import assert from 'node:assert/strict'; import { readFileSync } from 'node:fs'; const manifest = JSON.parse(readFileSync('build/release-manifest.json', 'utf8')); assert.equal(manifest.commit, process.env.GITHUB_SHA); assert.equal(manifest.dirty, false);"
+      - run: pnpm portal:configure config/portal-config.production.json
+      - run: pnpm release:record
+      - run: pnpm release:verify
+      - uses: actions/upload-artifact@v7
+        with:
+          name: angular-live-candidate-${{ github.sha }}
+          path: |
+            build/portal/browser
+            build/release-manifest.json
+          retention-days: 7
+          if-no-files-found: error
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_OMNIPRAXIS_F8141 }}
+          channelId: live
+          projectId: omnipraxis-f8141
