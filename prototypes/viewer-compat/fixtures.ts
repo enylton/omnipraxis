@@ -8,9 +8,9 @@ import { ref, uploadBytes } from 'firebase/storage';
 
 import type { SceneAsset, SceneDescriptor } from '../../src/contracts/scene.ts';
 
-export const projectId = 'demo-omnipraxis-phase1';
+export const projectId = 'demo-omnipraxis-viewer';
 export const bucket = `${projectId}.appspot.com`;
-export const prototypeDirectory = resolve('prototypes/phase1');
+export const prototypeDirectory = resolve('prototypes/viewer-compat');
 export const storageOrigin = 'http://127.0.0.1:9299';
 
 export const createTestEnvironment = async () =>
@@ -39,10 +39,10 @@ export const seedFixtures = async (
     const db = context.firestore();
     const storage = context.storage(`gs://${bucket}`);
     for (const [uid, org, role, status] of [
-      ['assigned', 'phase1', 'viewer', 'active'],
-      ['unassigned', 'phase1', 'viewer', 'active'],
-      ['suspended', 'phase1', 'viewer', 'suspended'],
-      ['admin', 'phase1', 'admin', 'active'],
+      ['assigned', 'viewer', 'viewer', 'active'],
+      ['unassigned', 'viewer', 'viewer', 'active'],
+      ['suspended', 'viewer', 'viewer', 'suspended'],
+      ['admin', 'viewer', 'admin', 'active'],
       ['outsider', 'other', 'admin', 'active'],
     ]) {
       await setDoc(doc(db, `organizations/${org}/members/${uid}`), { role, status });
@@ -55,7 +55,7 @@ export const seedFixtures = async (
     ] as const) {
       const prefix = publicScene
         ? `public-scenes/${sceneId}/revisions/r1/`
-        : `organizations/phase1/scenes/${sceneId}/revisions/r1/`;
+        : `organizations/viewer/scenes/${sceneId}/revisions/r1/`;
       const files = await readdir(resolve('public/scenes', sceneId));
       const assets: Record<string, SceneAsset> = {};
       // Sequential uploads bound fixture memory. These are local emulators only.
@@ -81,7 +81,7 @@ export const seedFixtures = async (
         revisionId: 'r1',
         scope: publicScene
           ? { kind: 'public' }
-          : { kind: 'organization', organizationId: 'phase1' },
+          : { kind: 'organization', organizationId: 'viewer' },
         assets: {
           splats: {
             ...assets[publicScene ? 'splats-lod.rad' : 'splats.spz'],
@@ -99,7 +99,7 @@ export const seedFixtures = async (
           descriptor,
         });
       } else {
-        const path = `organizations/phase1/scenes/${sceneId}`;
+        const path = `organizations/viewer/scenes/${sceneId}`;
         await setDoc(doc(db, path), {
           status: 'published',
           accessMode: 'assigned',
@@ -109,7 +109,7 @@ export const seedFixtures = async (
         await setDoc(doc(db, `${path}/revisions/r1`), descriptor);
       }
     }
-    await setDoc(doc(db, 'organizations/phase1/uploads/upload1'), {
+    await setDoc(doc(db, 'organizations/viewer/uploads/upload1'), {
       actor: 'admin',
       status: 'uploading',
       expiresAt: Timestamp.fromMillis(Date.now() + 3_600_000),

@@ -39,6 +39,8 @@ export const resolveStorageAssets = async (
   ]);
   signal.throwIfAborted();
 
+  const headerLease =
+    descriptor.assets.splats.format === 'rad' ? await transport.liveHeaders() : undefined;
   const urls = [URL.createObjectURL(colliders)];
   const collidersUrl = urls[0];
   const splatsUrl = splats
@@ -46,8 +48,6 @@ export const resolveStorageAssets = async (
     : transport.page(descriptor.assets.splats.path);
   if (splats) urls.push(splatsUrl);
   const prefix = sceneRevisionPrefix(descriptor);
-  const requestHeader =
-    descriptor.assets.splats.format === 'rad' ? await transport.headers() : undefined;
   let disposed = false;
 
   return {
@@ -68,13 +68,14 @@ export const resolveStorageAssets = async (
                 return transport.page(`${prefix}${filename}`);
               }
             : undefined,
-        requestHeader,
+        requestHeader: headerLease?.value,
       },
       spawn: descriptor.spawn,
     },
     dispose() {
       if (disposed) return;
       disposed = true;
+      headerLease?.dispose();
       for (const url of urls) URL.revokeObjectURL(url);
     },
   };

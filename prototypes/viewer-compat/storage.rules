@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// Phase 1 prototype only. No production configuration references this file.
+// Viewer compatibility fixture only. No production configuration references this file.
 // Trusted fixtures create membership, publication, and upload-session records.
 service firebase.storage {
   match /b/{bucket}/o {

@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// Phase 1 read-only prototype. Trusted fixture tooling supplies all data.
+// Viewer compatibility fixture only. Trusted tooling supplies all data.
 // members/{uid}: { role: 'admin'|'viewer', status: 'active'|'suspended' }
 // scenes/{sceneId}: { status, accessMode, assignedUserIds, publishedRevisionId }
 // revisions/{revisionId}: the versioned scene descriptor.

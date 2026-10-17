@@ -1,12 +1,12 @@
 import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
-  testDir: '../../tests/phase1',
+  testDir: '../../tests/viewer-compat',
   testMatch: '**/*.browser.ts',
   timeout: 180_000,
   workers: 1,
   reporter: 'list',
-  outputDir: '../../build/phase1/browser-results',
+  outputDir: '../../build/viewer-compat/browser-results',
   use: {
     baseURL: 'http://127.0.0.1:4174',
     channel: 'msedge',
@@ -23,9 +23,9 @@ export default defineConfig({
       reuseExistingServer: false,
     },
     {
-      command: 'pnpm exec vite --config prototypes/phase1/legacy.vite.config.ts',
+      command: 'pnpm exec vite --config prototypes/viewer-compat/assets.vite.config.ts',
       cwd: '../..',
-      url: 'http://127.0.0.1:4175/omnipraxis/',
+      url: 'http://127.0.0.1:4175/omnipraxis/scenes/base/colliders.glb',
       reuseExistingServer: false,
     },
   ],

@@ -95,8 +95,8 @@ jobs:
           path: |
             build/portal-tests
             build/portal-report
-            build/phase1/browser-results
-            build/phase1/*.json
+            build/viewer-compat/browser-results
+            build/viewer-compat/*.json
           if-no-files-found: ignore
           retention-days: 7
 

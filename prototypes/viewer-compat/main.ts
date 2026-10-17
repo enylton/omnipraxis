@@ -7,7 +7,7 @@ import './style.css';
 
 type ViewerModule = typeof import('../../src/viewer/index');
 
-const projectId = 'demo-omnipraxis-phase1';
+const projectId = 'demo-omnipraxis-viewer';
 const identity = document.querySelector<HTMLSelectElement>('#identity')!;
 const scene = document.querySelector<HTMLSelectElement>('#scene')!;
 const status = document.querySelector<HTMLOutputElement>('#status')!;
@@ -19,7 +19,7 @@ const clients = new Map<string, ReturnType<typeof createClient>>();
 function createClient(uid: string) {
   const app = initializeApp(
     { projectId, apiKey: 'emulator-only', storageBucket: `${projectId}.appspot.com` },
-    `phase1-${uid}`,
+    `viewer-${uid}`,
   );
   const db = getFirestore(app);
   const storage = getStorage(app);
@@ -54,7 +54,7 @@ const open = async () => {
     const path =
       scene.value === 'circuit-breaker'
         ? `publicScenes/${scene.value}`
-        : `organizations/phase1/scenes/${scene.value}/revisions/r1`;
+        : `organizations/viewer/scenes/${scene.value}/revisions/r1`;
     const snapshot = await getDoc(doc(db, path));
     if (!snapshot.exists()) throw new Error('Missing scene fixture. Run pnpm viewer:seed first.');
     const descriptor =
@@ -64,7 +64,7 @@ const open = async () => {
         read: (path, maxBytes) => getBlob(ref(storage, path), maxBytes),
         page: (path) =>
           `http://127.0.0.1:9299/v0/b/${storage.app.options.storageBucket}/o/${encodeURIComponent(path)}?alt=media`,
-        headers: async () => ({}),
+        liveHeaders: async () => ({ value: {}, dispose: () => {} }),
       },
       descriptor,
       signal,

@@ -31,7 +31,7 @@ test('viewer artifact packages its declared files without runtime declarations',
 });
 
 test('plain TypeScript consumer compiles only against the built public declarations', async () => {
-  const directory = new URL('../../build/phase1a/step4-consumer/', import.meta.url);
+  const directory = new URL('../../build/viewer-compat/consumer/', import.meta.url);
   await mkdir(directory, { recursive: true });
   await writeFile(
     new URL('consumer.ts', directory),

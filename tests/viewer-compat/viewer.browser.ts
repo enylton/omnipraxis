@@ -88,7 +88,7 @@ for (const splatsFormat of ['spz', 'rad'] as const) {
         message: 'The packaged viewer should render scene content in the sized host.',
       })
       .toBeGreaterThan(10_000);
-    await page.screenshot({ path: `build/phase1/artifact-${splatsFormat}.png` });
+    await page.screenshot({ path: `build/viewer-compat/artifact-${splatsFormat}.png` });
     if (splatsFormat === 'rad') {
       await expect.poll(() => pages.length, { timeout: 30_000 }).toBeGreaterThan(0);
       expect(
@@ -132,7 +132,7 @@ test('built ESM viewer opens private scenes, denies unassigned identities, and r
       urls.delete(url);
       originalRevoke(url);
     };
-    Object.assign(window, { phase1ObjectUrls: urls });
+    Object.assign(window, { viewerObjectUrls: urls });
   });
   await page.goto('/');
   await page.selectOption('#identity', 'unassigned');
@@ -143,7 +143,7 @@ test('built ESM viewer opens private scenes, denies unassigned identities, and r
   await page.selectOption('#identity', 'assigned');
   await page.click('#open');
   await expect(page.locator('#status')).toHaveText('Ready', { timeout: 90_000 });
-  await page.screenshot({ path: 'build/phase1/drill-rig.png' });
+  await page.screenshot({ path: 'build/viewer-compat/drill-rig.png' });
   await page.click('#close');
   await page.waitForTimeout(1_000);
   await page.selectOption('#scene', 'base');
@@ -161,7 +161,7 @@ test('built ESM viewer opens private scenes, denies unassigned identities, and r
     await expect(page.locator('#status')).toHaveText('Ready', { timeout: 90_000 });
     const loadMs = Date.now() - started;
     await expect(page.locator('canvas')).toHaveCount(1);
-    await page.screenshot({ path: `build/phase1/base-cycle-${cycle}.png` });
+    await page.screenshot({ path: `build/viewer-compat/base-cycle-${cycle}.png` });
     await page.click('#close');
     await expect(page.locator('canvas')).toHaveCount(0);
     await page.waitForTimeout(1_000); // R3F releases the canvas asynchronously after unmount.
@@ -178,13 +178,13 @@ test('built ESM viewer opens private scenes, denies unassigned identities, and r
     });
     expect(
       await page.evaluate(
-        () => (window as unknown as { phase1ObjectUrls: Set<string> }).phase1ObjectUrls.size,
+        () => (window as unknown as { viewerObjectUrls: Set<string> }).viewerObjectUrls.size,
       ),
     ).toBeLessThanOrEqual(1); // Spark may retain one shared worker URL.
   }
   const settled = samples.slice(2);
   const detached = await cdp.send('DOM.getDetachedDomNodes');
-  await writeFile('build/phase1/detached-dom.json', JSON.stringify(detached, null, 2));
+  await writeFile('build/viewer-compat/detached-dom.json', JSON.stringify(detached, null, 2));
   const [splats, colliders] = await Promise.all([
     stat('public/scenes/base/splats.spz'),
     stat('public/scenes/base/colliders.glb'),
@@ -198,7 +198,7 @@ test('built ESM viewer opens private scenes, denies unassigned identities, and r
     detachedTrees: detached.detachedNodes.length,
     errors,
   };
-  await writeFile('build/phase1/lifecycle.json', JSON.stringify(receipt, null, 2));
+  await writeFile('build/viewer-compat/lifecycle.json', JSON.stringify(receipt, null, 2));
   console.log(JSON.stringify(receipt));
   expect(settled.at(-1)!.heap - settled[0].heap).toBeLessThan(8 * 1024 * 1024);
   expect(
@@ -229,7 +229,7 @@ test('public RAD/RADC pages load anonymously from tokenless Storage URLs', async
   await expect(page.locator('#status')).toHaveText('Ready', { timeout: 90_000 });
   await expect.poll(() => pages.length, { timeout: 30_000 }).toBeGreaterThan(0);
   expect(pages.every((url) => url.includes('alt=media') && !url.includes('token='))).toBe(true);
-  await page.screenshot({ path: 'build/phase1/public-paging.png' });
+  await page.screenshot({ path: 'build/viewer-compat/public-paging.png' });
   await page.click('#close');
   await page.waitForTimeout(1_000);
   expect(errors).toEqual([]);
@@ -269,20 +269,3 @@ test('checksum failure prevents decoding or mounting altered private assets', as
   await expect(page.locator('#status')).toContainText('checksum', { timeout: 20_000 });
   await expect(page.locator('canvas')).toHaveCount(0);
 });
-
-for (const slug of ['base', 'drill-rig', 'circuit-breaker', 'pressure-gauge']) {
-  test(`existing Strict Mode web scene still renders: ${slug}`, async ({ page }) => {
-    const errors: string[] = [];
-    page.on('pageerror', (error) => errors.push(error.message));
-    await page.goto(`http://127.0.0.1:4175/omnipraxis/${slug}`);
-    await expect(page.locator('canvas')).toHaveCount(1);
-    await expect
-      .poll(async () => (await page.locator('canvas').screenshot()).byteLength, {
-        timeout: 60_000,
-        message: 'Scene should render visible content rather than the initial empty canvas.',
-      })
-      .toBeGreaterThan(20_000);
-    await page.screenshot({ path: `build/phase1/legacy-${slug}.png` });
-    expect(errors).toEqual([]);
-  });
-}

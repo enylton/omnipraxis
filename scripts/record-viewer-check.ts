@@ -11,10 +11,10 @@ const sha256 = (path: string) =>
     .update(readFileSync(new URL(path, workspace)))
     .digest('hex');
 
-mkdirSync(new URL('build/phase1/', workspace), { recursive: true });
+mkdirSync(new URL('build/viewer-compat/', workspace), { recursive: true });
 if (process.argv.includes('--start')) {
   writeFileSync(
-    new URL('build/phase1/viewer-check.json', workspace),
+    new URL('build/viewer-compat/viewer-check.json', workspace),
     JSON.stringify(
       {
         recordedAt: new Date().toISOString(),
@@ -27,7 +27,7 @@ if (process.argv.includes('--start')) {
   );
   process.exit(0);
 }
-const started = readJson('build/phase1/viewer-check.json');
+const started = readJson('build/viewer-compat/viewer-check.json');
 const baseline = readJson('config/viewer-upstream.json');
 if (started.automatedChecks !== 'running' || started.sourceCommit !== git('rev-parse', 'HEAD')) {
   throw new Error(
@@ -84,11 +84,11 @@ const receipt = {
   ),
   lockfileSha256: sha256('pnpm-lock.yaml'),
   artifactSha256: Object.fromEntries(files.map((file) => [file, sha256(`build/viewer/${file}`)])),
-  lifecycle: readJson('build/phase1/lifecycle.json'),
+  lifecycle: readJson('build/viewer-compat/lifecycle.json'),
 };
 writeFileSync(
-  new URL('build/phase1/viewer-check.json', workspace),
+  new URL('build/viewer-compat/viewer-check.json', workspace),
   JSON.stringify(receipt, null, 2) + '\n',
 );
-console.log('Viewer compatibility checks passed. Receipt: build/phase1/viewer-check.json');
+console.log('Viewer compatibility checks passed. Receipt: build/viewer-compat/viewer-check.json');
 console.log('Manual scene/input/event-export acceptance is still a separate review requirement.');

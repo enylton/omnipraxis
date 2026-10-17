@@ -60,4 +60,11 @@ test('production configuration refuses placeholders, another project and unrevie
     parseProductionConfig({ ...config, firebase: { ...config.firebase, projectId: 'other' } }),
   );
   assert.throws(() => parseProductionConfig({ ...config, allowedOrigins: ['http://localhost'] }));
+  assert.throws(() => parseProductionConfig({ ...config, serverSecret: 'must-not-publish' }));
+  assert.throws(() =>
+    parseProductionConfig({
+      ...config,
+      firebase: { ...config.firebase, private_key: 'must-not-publish' },
+    }),
+  );
 });

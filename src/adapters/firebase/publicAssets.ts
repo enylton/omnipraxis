@@ -12,7 +12,10 @@ export async function resolvePublicAssets(
   const descriptor = parsePublicScene(input);
   const urls: string[] = [];
   const resolved: Record<string, string> = {};
+  let releaseHeaders: (() => void) | undefined;
   const dispose = () => {
+    releaseHeaders?.();
+    releaseHeaders = undefined;
     for (const url of urls.splice(0)) URL.revokeObjectURL(url);
   };
   try {
@@ -28,6 +31,8 @@ export async function resolvePublicAssets(
       urls.push(url);
       resolved[name] = url;
     }
+    const headerLease = descriptor.sceneId === 'base' ? undefined : await transport.liveHeaders();
+    releaseHeaders = headerLease?.dispose;
     const assets: PublicDemoAssets = {
       splatsUrl: resolved[descriptor.sceneId === 'base' ? 'splats.spz' : 'splats-lod.rad'],
       collidersUrl: resolved['colliders.glb'],
@@ -47,7 +52,7 @@ export async function resolvePublicAssets(
                 throw new Error('RAD page is outside the imported revision.');
               return transport.page(descriptor.assets[filename].path);
             },
-      requestHeader: descriptor.sceneId === 'base' ? undefined : await transport.headers(),
+      requestHeader: headerLease?.value,
     };
     return { assets, dispose };
   } catch (error) {

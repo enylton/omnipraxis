@@ -15,7 +15,7 @@ import { organizationService } from '../src/service.ts';
 
 export const project = 'demo-omnipraxis';
 export const bucket = `${project}.appspot.com`;
-export const password = 'Phase2-test-only-123!';
+export const password = 'Backend-test-only-123!';
 for (const [name, expected] of Object.entries({
   FIRESTORE_EMULATOR_HOST: '127.0.0.1:8280',
   FIREBASE_AUTH_EMULATOR_HOST: '127.0.0.1:9199',
@@ -26,7 +26,7 @@ for (const [name, expected] of Object.entries({
 }
 if (process.env.GCLOUD_PROJECT !== project)
   throw new Error('Refusing tests outside the dedicated demo project.');
-const app = adminApp({ projectId: project, storageBucket: bucket }, 'phase2-tests');
+const app = adminApp({ projectId: project, storageBucket: bucket }, 'backend-tests');
 export const db = adminFirestore(app);
 export const auth = adminAuth(app);
 export const assetBucket = adminStorage(app).bucket();
@@ -162,8 +162,8 @@ export async function seed() {
 const clients = new Map<string, ReturnType<typeof createClient>>();
 function createClient(key: string) {
   const app = initializeApp(
-    { projectId: project, apiKey: 'demo-phase2-key', storageBucket: bucket },
-    `phase2-${key}`,
+    { projectId: project, apiKey: 'demo-backend-key', storageBucket: bucket },
+    `backend-${key}`,
   );
   const auth = getAuth(app);
   connectAuthEmulator(auth, 'http://127.0.0.1:9199', { disableWarnings: true });

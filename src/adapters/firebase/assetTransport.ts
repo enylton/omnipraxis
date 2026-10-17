@@ -1,5 +1,5 @@
-import { getToken } from 'firebase/app-check';
-import { getIdToken } from 'firebase/auth';
+import { getToken, onTokenChanged } from 'firebase/app-check';
+import { getIdToken, onIdTokenChanged } from 'firebase/auth';
 
 import type { AppCheck } from 'firebase/app-check';
 import type { Auth } from 'firebase/auth';
@@ -7,7 +7,7 @@ import type { Auth } from 'firebase/auth';
 export type AssetTransport = {
   read: (path: string, maxBytes: number, signal: AbortSignal) => Promise<Blob>;
   page: (path: string) => string;
-  headers: () => Promise<Record<string, string>>;
+  liveHeaders: () => Promise<{ value: Record<string, string>; dispose: () => void }>;
 };
 
 export function assetTransport(
@@ -31,7 +31,44 @@ export function assetTransport(
   };
   return {
     page,
-    headers,
+    async liveHeaders() {
+      const value = await headers();
+      let active = true;
+      let authGeneration = 0;
+      const stopAuth = onIdTokenChanged(auth, async (user) => {
+        const generation = ++authGeneration;
+        if (!user) {
+          delete value['Authorization'];
+          return;
+        }
+        try {
+          const token = await getIdToken(user);
+          if (active && generation === authGeneration) value['Authorization'] = `Bearer ${token}`;
+        } catch {
+          if (active && generation === authGeneration) delete value['Authorization'];
+        }
+      });
+      const stopAppCheck =
+        !emulator && appCheck
+          ? onTokenChanged(
+              appCheck,
+              ({ token }) => {
+                if (active) value['X-Firebase-AppCheck'] = token;
+              },
+              () => {
+                if (active) delete value['X-Firebase-AppCheck'];
+              },
+            )
+          : () => {};
+      return {
+        value,
+        dispose() {
+          active = false;
+          stopAuth();
+          stopAppCheck();
+        },
+      };
+    },
     async read(path, maxBytes, signal) {
       const response = await fetch(page(path), {
         headers: await headers(),

@@ -6,9 +6,10 @@ A platform for building immersive, intelligent, and interactive professional tra
 
 **Core Framework**
 
-- Vite — Build tool and development server.
+- Angular — Web portal and routing.
+- Vite — Viewer and desktop renderer builds.
 - TypeScript — Static typing and tooling.
-- React — UI and application architecture.
+- React — Viewer and desktop runtime.
 - Zustand — Global state management.
 
 **3D & XR**
@@ -39,7 +40,7 @@ A platform for building immersive, intelligent, and interactive professional tra
 ### Requirements
 
 - Node.js 24 LTS+
-- pnpm 11+
+- pnpm 12.11.2
 
 ## Installation
 
@@ -66,18 +67,18 @@ pnpm backend:emulators
 
 In another terminal, seed a fresh emulator session with `pnpm portal:seed`, then run `pnpm dev` (equivalent to `pnpm portal:dev`). Open <http://127.0.0.1:4200>. Seeding resets local demo metadata; omit it when restarting only the frontend. Install the backend dependencies with `pnpm --dir functions install --frozen-lockfile` on a new checkout. See [the portal guide](portal/README.md) for prerequisites, demo accounts and verification.
 
-The original Vite application is available through `pnpm legacy:dev` for local compatibility work. The default web build and Firebase Hosting configuration use Angular and exclude scene binaries. Live deployment remains pending; see [cloud cutover](docs/cloud-cutover.md).
+The web build and Firebase Hosting configuration use Angular and exclude scene binaries. The isolated viewer compatibility harness lives under `prototypes/viewer-compat/`; run `pnpm viewer:check` for its emulator and browser proof. Live deployment remains pending; see [cloud cutover](docs/cloud-cutover.md).
 
 ## Scenes
 
-The root application route displays the available scene index. The current routes are:
+The root application route displays the public demo catalog. The current routes include:
 
 - `/base`, `/circuit-breaker` and `/pressure-gauge` for anonymous demonstrations loaded from controlled Storage paths.
 - `/drill-rig` for verified sign-in and organization selection; restricted viewing uses organization scene routes.
 
 Angular supports client-side history navigation; the prepared Firebase Hosting configuration rewrites deep links to the portal. Pages deployment has been retired in source, but existing public deployments/history still require operator cleanup before claiming Drill Rig confidentiality.
 
-To add a scene, create a prop-free scene component in `src/scenes/`, add its public slug and title to `sceneManifest.ts`, and map that slug to the component in `sceneRegistry.ts`. Public asset URLs must use `import.meta.env.BASE_URL`.
+Scene rendering is provided by the emitted viewer module. See [the portal guide](portal/README.md) and [architecture](docs/architecture.md) for the current catalog and viewer flow.
 
 ## Windows Desktop
 
